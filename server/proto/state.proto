@@ -1,0 +1,82 @@
+syntax = "proto3";
+package mmo.state;
+
+import "common.proto";
+
+// 实体类型定义。
+enum EntityType {
+  // 未指定类型。
+  ET_UNSPECIFIED = 0;
+  // 玩家实体。
+  PLAYER = 1;
+  // NPC 实体。
+  NPC = 2;
+  // 怪物实体。
+  MONSTER = 3;
+}
+
+// 通用属性键值对。
+message Attribute {
+  // 属性名。
+  string key = 1;
+  // 属性值。
+  int64 value = 2;
+}
+
+// AOI 初次进入时的完整快照。
+message EntitySnapshot {
+  // 实体 ID。
+  uint64 entity_id = 1;
+  // 实体类型。
+  EntityType type = 2;
+  // 当前位置。
+  mmo.common.Vector3 pos = 3;
+  // 当前朝向。
+  float yaw = 4;
+  // 属性快照列表。
+  repeated Attribute attrs = 5;
+  // 量化位置（高频链路推荐）。
+  mmo.common.QuantizedVector3 pos_q = 6;
+  // 打包朝向（高频链路推荐）。
+  mmo.common.PackedLookAngles look_q = 7;
+}
+
+// 帧同步中的实体增量。
+message EntityDelta {
+  // 实体 ID。
+  uint64 entity_id = 1;
+  // 位置是否变化。
+  bool pos_changed = 2;
+  // 新位置（当位置变化时有效）。
+  mmo.common.Vector3 pos = 3;
+  // 朝向是否变化。
+  bool yaw_changed = 4;
+  // 新朝向（当朝向变化时有效）。
+  float yaw = 5;
+  // 变化的属性列表。
+  repeated Attribute attrs = 6;
+  // 新量化位置（当位置变化时有效）。
+  mmo.common.QuantizedVector3 pos_q = 7;
+  // 新打包朝向（当朝向变化时有效）。
+  mmo.common.PackedLookAngles look_q = 8;
+}
+
+// AOI 进入通知。
+message S2C_AOIEnter {
+  // 新进入 AOI 的实体快照。
+  repeated EntitySnapshot entities = 1;
+}
+
+// AOI 离开通知。
+message S2C_AOILeave {
+  // 离开 AOI 的实体 ID 列表。
+  repeated uint64 entity_ids = 1;
+}
+
+// 状态帧下发消息。
+message S2C_StateFrame {
+  // 当前帧的实体增量列表。
+  repeated EntityDelta deltas = 1;
+  // 服务器帧号。
+  uint32 frame = 2;
+}

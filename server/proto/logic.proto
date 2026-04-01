@@ -1,0 +1,41 @@
+syntax = "proto3";
+package mmo.logic;
+
+// 物品实例结构。
+message Item {
+  // 物品实例唯一 ID。
+  uint64 uid = 1;
+  // 物品配置 ID。
+  uint32 item_id = 2;
+  // 物品数量。
+  uint32 count = 3;
+}
+
+// 背包完整快照。
+message InventorySnapshot {
+  // 背包内物品列表。
+  repeated Item items = 1;
+}
+
+// 客户端请求背包数据。
+message C2S_RequestInventory {}
+
+// 服务端返回背包快照。
+message S2C_InventorySnapshot {
+  // 背包快照内容。
+  InventorySnapshot inv = 1;
+}
+
+// 服务端通知新增物品。
+message S2C_ItemAdded {
+  // 新增的物品实例。
+  Item item = 1;
+}
+
+// 服务端任务状态更新通知。
+message S2C_QuestUpdate {
+  // 任务 ID。
+  uint32 quest_id = 1;
+  // 任务状态编码。
+  uint32 state = 2;
+}

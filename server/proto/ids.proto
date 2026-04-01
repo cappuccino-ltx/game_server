@@ -1,0 +1,112 @@
+syntax = "proto3";
+package mmo.ids;
+
+// 消息方向编码，对应 message_id 的高位方向段。
+enum Direction {
+  // 未指定方向。
+  DIR_UNSPECIFIED = 0;
+  // 客户端到网关。
+  C2G = 1;
+  // 网关到客户端。
+  G2C = 2;
+  // 网关到战斗服。
+  GW2BATTLE = 3;
+  // 战斗服到网关。
+  BATTLE2GW = 4;
+  // 网关到逻辑服。
+  GW2LOGIC = 5;
+  // 逻辑服到网关。
+  LOGIC2GW = 6;
+}
+
+// 消息模块编码，对应 message_id 的模块段。
+enum Module {
+  // 未指定模块。
+  MOD_UNSPECIFIED = 0;
+  // 登录鉴权模块。
+  AUTH = 1;
+  // 会话管理模块。
+  SESSION = 2;
+  // 移动模块。
+  MOVE = 3;
+  // 状态同步模块。
+  STATE = 4;
+  // 技能模块。
+  SKILL = 5;
+  // 非实时逻辑模块。
+  LOGIC = 6;
+  // 网关内部控制模块。
+  GATEWAY = 15;
+  // 服务内部保留模块。
+  INTERNAL = 31;
+}
+
+// 登录模块动作码。
+enum AuthAction {
+  // 未指定动作。
+  AA_UNSPECIFIED = 0;
+  // 客户端发起登录绑定请求。
+  AUTH_BIND_REQ = 1;
+  // 服务端返回登录绑定结果。
+  AUTH_BIND_ACK = 2;
+  // 客户端心跳请求。
+  HEARTBEAT_REQ = 3;
+  // 服务端心跳响应。
+  HEARTBEAT_ACK = 4;
+  // 服务端踢下线通知。
+  KICK_NTF = 5;
+}
+
+// 移动模块动作码。
+enum MoveAction {
+  // 未指定动作。
+  MA_UNSPECIFIED = 0;
+  // 客户端上报移动输入。
+  MOVE_INPUT_REQ = 1;
+  // 服务端下发移动增量。
+  MOVE_DELTA_NTF = 2;
+  // 服务端下发瞬移结果。
+  TELEPORT_NTF = 3;
+  // 客户端停止移动请求。
+  STOPMOVE_REQ = 4;
+}
+
+// 状态同步模块动作码。
+enum StateAction {
+  // 未指定动作。
+  SA_UNSPECIFIED = 0;
+  // AOI 进入通知。
+  AOI_ENTER_NTF = 1;
+  // AOI 离开通知。
+  AOI_LEAVE_NTF = 2;
+  // 状态帧通知。
+  STATE_FRAME_NTF = 3;
+}
+
+// 技能模块动作码。
+enum SkillAction {
+  // 未指定动作。
+  KA_UNSPECIFIED = 0;
+  // 客户端施法开始请求。
+  CAST_START_REQ = 1;
+  // 服务端施法开始确认。
+  CAST_STARTED_NTF = 2;
+  // 技能事件通知。
+  SKILL_EVENT_NTF = 3;
+  // 施法打断请求。
+  INTERRUPT_REQ = 4;
+}
+
+// 逻辑模块动作码。
+enum LogicAction {
+  // 未指定动作。
+  LA_UNSPECIFIED = 0;
+  // 请求背包快照。
+  REQUEST_INVENTORY_REQ = 1;
+  // 背包快照通知。
+  INVENTORY_SNAPSHOT_NTF = 2;
+  // 新增物品通知。
+  ITEM_ADDED_NTF = 3;
+  // 任务状态更新通知。
+  QUEST_UPDATE_NTF = 4;
+}

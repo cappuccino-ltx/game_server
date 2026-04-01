@@ -1,0 +1,86 @@
+syntax = "proto3";
+package mmo.auth;
+
+// 客户端登录绑定请求。
+message C2G_AuthBind {
+  // 登录服务颁发的访问令牌。
+  string token = 1;
+  // 设备标识，用于风控与会话校验。
+  string device = 2;
+  // 客户端版本号。
+  uint32 client_version = 3;
+}
+
+// 登录绑定结果返回。
+message G2C_AuthResult {
+  // 是否登录成功。
+  bool ok = 1;
+  // 玩家 ID。
+  uint64 player_id = 2;
+  // 初始 Zone。
+  uint32 zone_id = 3;
+  // 初始 Battle 实例。
+  uint32 battle_id = 4;
+  // 失败或提示原因。
+  string reason = 5;
+  // 断线重连凭证。
+  string reconnect_key = 6;
+}
+
+// 客户端心跳请求。
+message C2G_Heartbeat {
+  // 客户端当前时间戳（毫秒）。
+  uint64 client_time_ms = 1;
+}
+
+// 服务端心跳响应。
+message G2C_Heartbeat {
+  // 服务端当前时间戳（毫秒）。
+  uint64 server_time_ms = 1;
+}
+
+// 踢下线通知。
+message G2C_Kick {
+  // 踢下线原因。
+  string reason = 1;
+}
+
+// 网关请求逻辑服验证 token。
+message GW2LOG_VerifyTokenReq {
+  // 待校验令牌。
+  string token = 1;
+  // 设备标识。
+  string device = 2;
+}
+
+// 逻辑服返回 token 校验结果。
+message LOG2GW_VerifyTokenRsp {
+  // 是否验证成功。
+  bool ok = 1;
+  // 玩家 ID。
+  uint64 player_id = 2;
+  // 玩家 Zone。
+  uint32 zone_id = 3;
+  // 玩家 Battle 实例。
+  uint32 battle_id = 4;
+  // 失败原因。
+  string reason = 5;
+}
+
+// 网关通知战斗服附加玩家会话。
+message GW2BATTLE_PlayerAttach {
+  // 玩家 ID。
+  uint64 player_id = 1;
+  // 会话 ID。
+  uint64 session_id = 2;
+  // 玩家所在 Zone。
+  uint32 zone_id = 3;
+}
+
+// 网关通知战斗服移除玩家会话。
+message GW2BATTLE_PlayerDetach {
+  // 玩家 ID。
+  uint64 player_id = 1;
+  // 移除原因。
+  string reason = 2;
+}

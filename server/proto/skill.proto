@@ -1,0 +1,73 @@
+syntax = "proto3";
+package mmo.skill;
+
+import "common.proto";
+
+// 客户端施法开始请求。
+message C2S_CastStart {
+  // 施法者实体 ID。
+  uint64 caster_id = 1;
+  // 技能配置 ID。
+  uint32 skill_id = 2;
+  // 目标信息，只能是目标实体或目标点位。
+  oneof target {
+    // 目标实体 ID。
+    uint64 target_id = 3;
+    // 目标位置坐标。
+    mmo.common.Vector3 target_pos = 4;
+    // 目标位置量化坐标（高频链路推荐）。
+    mmo.common.QuantizedVector3 target_pos_q = 6;
+  }
+  // 客户端本地施法请求 ID。
+  uint32 client_cast_id = 5;
+}
+
+// 服务端确认施法开始。
+message S2C_CastStarted {
+  // 施法者实体 ID。
+  uint64 caster_id = 1;
+  // 技能配置 ID。
+  uint32 skill_id = 2;
+  // 服务端施法实例 ID。
+  uint32 server_cast_id = 3;
+  // 施法目标信息。
+  oneof target {
+    // 目标实体 ID。
+    uint64 target_id = 4;
+    // 目标位置坐标。
+    mmo.common.Vector3 target_pos = 5;
+    // 目标位置量化坐标（高频链路推荐）。
+    mmo.common.QuantizedVector3 target_pos_q = 6;
+  }
+}
+
+// 技能过程事件通知。
+message S2C_SkillEvent {
+  // 服务端施法实例 ID。
+  uint32 server_cast_id = 1;
+  // 事件类型。
+  enum EventType {
+    // 施法开始。
+    START = 0;
+    // 命中事件。
+    HIT = 1;
+    // 未命中事件。
+    MISS = 2;
+    // 打断事件。
+    INTERRUPT = 3;
+    // 施法结束。
+    END = 4;
+  }
+  // 当前事件类型。
+  EventType type = 2;
+  // 命中的目标实体 ID 列表。
+  repeated uint64 hit_targets = 3;
+}
+
+// 客户端打断施法请求。
+message C2S_InterruptCast {
+  // 客户端施法请求 ID。
+  uint32 client_cast_id = 1;
+  // 打断原因描述。
+  string reason = 2;
+}
