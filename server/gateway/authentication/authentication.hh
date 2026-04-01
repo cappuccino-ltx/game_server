@@ -8,15 +8,15 @@
 
 #include <lockfree/lockfree.hh> 
 #include <akcp/channel.hh>
+#include <authenticate.hh>
 
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
-#include <unordered_set>
 #include <functional>
 #include <memory>
 #include <thread>
-#include <shared_mutex>
 #include <condition_variable>
 
 
@@ -31,14 +31,7 @@ struct AuthenticationConfig{
     int thread_count = 1;
 };
 
-struct PlayerInfo{
-    uint64_t version;
-    uint64_t session_id;
-    uint32_t gateway_id;
-    uint32_t zone_id;
-    uint32_t battle_id;
-};
-
+// streams 通知 todo ...
 class Authentication{
 public:
     Authentication(const AuthenticationConfig& config)
@@ -57,21 +50,19 @@ public:
             }
         }
     }
-    void set_authenticate_callback(const std::function<void(uint64_t,bool)>& back){
+    void set_authenticate_callback(const std::function<void(uint64_t, std::shared_ptr<common::PlayerInfo>)> back){
         authenticate_callback_ = back;
     }
-    bool authenticate(uint64_t player_id){
-        bool is_authenticated = false;
-        {
-            std::shared_lock<std::shared_mutex> lock(player_ids_mutex_);
-            is_authenticated = player_ids_.find(player_id) != player_ids_.end();
-        }
+    std::shared_ptr<common::PlayerInfo> authenticate(uint64_t player_id){
+        auto info = player_info_.find(player_id);
+        bool is_authenticated =  info != player_info_.end(player_id);
         if (!is_authenticated){
             // 异步请求redis验证玩家是否登录
             while(!player_id_queue_.try_put(player_id));
             player_id_queue_cond_.notify_one();
+            return nullptr;
         }
-        return is_authenticated;
+        return std::make_shared<common::PlayerInfo>(info->second);
     }
 
     void stop(){
@@ -96,14 +87,26 @@ private:
                 }
                 // 请求redis 进行验证
                 std::string key = REDIS_STORE_NAME_SESSION_TOKEN + std::to_string(player_id);
-                bool is_authenticated = !redis_.exists(key);
-                if(authenticate_callback_){
-                    authenticate_callback_(player_id, is_authenticated);
-                }
-                if(is_authenticated){
-                    // write mutex lock
-                    std::unique_lock<std::shared_mutex> lock(player_ids_mutex_);
-                    player_ids_.insert(player_id);
+                std::unordered_map<std::string, std::string> info_map;
+                bool ret = redis_.hgetall(key, info_map);
+                if (ret) {
+                    // 解析玩家信息
+                    std::shared_ptr<common::PlayerInfo> info = std::make_shared<common::PlayerInfo>();
+                    info->version = std::stoull(info_map[PLAYER_INFO_VERSION]);
+                    info->session_id = std::stoull(info_map[PLAYER_INFO_SESSION_ID]);
+                    info->gateway_id = std::stoi(info_map[PLAYER_INFO_GATEWAY_ID]);
+                    info->zone_id = std::stoi(info_map[PLAYER_INFO_ZONE_ID]);
+                    info->battle_id = std::stoi(info_map[PLAYER_INFO_BATTLE_ID]);
+                    // 存储玩家信息
+                    player_info_.insert(player_id, *info);
+                    if(authenticate_callback_){
+                        authenticate_callback_(player_id, info);
+                    }
+                }else{
+                    // 玩家未登录
+                    if(authenticate_callback_){
+                        authenticate_callback_(player_id, nullptr);
+                    }
                 }
             }
         }
@@ -113,8 +116,8 @@ private:
     redis::Redis redis_;
     // std::unordered_set<uint64_t> player_ids_;
     // std::shared_mutex player_ids_mutex_;
-    ConcurrentMap<uint64_t, PlayerInfo> player_info_;
-    std::function<void(uint64_t,bool)> authenticate_callback_;
+    ConcurrentMap<uint64_t, common::PlayerInfo> player_info_;
+    std::function<void(uint64_t, std::shared_ptr<common::PlayerInfo>)> authenticate_callback_;
     std::vector<std::thread> threads_;
     std::atomic<bool> stop_ {false};
     lockfree::concurrent_queue<uint64_t> player_id_queue_ {std::thread::hardware_concurrency(), lockfree::K1};

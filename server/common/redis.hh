@@ -74,7 +74,7 @@ public:
             return false;
         }
     }
-    bool hgetall(const std::string& key, std::map<std::string, std::string>& fields){
+    bool hgetall(const std::string& key, std::unordered_map<std::string, std::string>& fields){
         try {
             fields.clear();
             redis_->hgetall(key, std::inserter(fields, fields.begin()));

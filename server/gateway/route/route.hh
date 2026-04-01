@@ -3,6 +3,8 @@
 #include <memory>
 #include "envelope.pb.h"
 #include <protocol.hh>
+#include <authenticate.hh>
+#include <internal_tcp.hh>
 
 
 
@@ -12,7 +14,7 @@ class Route{
 public:
     Route(){}
 
-    void client_to_route(std::shared_ptr<mmo::transport::Envelope> envelope){
+    void client_to_route(std::shared_ptr<mmo::transport::Envelope> envelope , std::shared_ptr<common::PlayerInfo> info){
         int direction = get_direction(envelope->header().cmd());
         int module = get_module(envelope->header().cmd());
         if (direction != DIRECTION_CLIENT_TO_GATEWAY){

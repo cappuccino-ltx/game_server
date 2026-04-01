@@ -34,6 +34,15 @@ public:
         std::shared_lock<std::shared_mutex> lock(bucket.mutex_);
         return bucket.map_[key];
     }
+    typename Map::iterator find(K key){
+        auto& bucket = get_map_bucket(key);
+        std::shared_lock<std::shared_mutex> lock(bucket.mutex_);
+        return bucket.map_.find(key);
+    }
+    typename Map::iterator end(K key){
+        auto& bucket = get_map_bucket(key);
+        return bucket.map_.end();
+    }
 
     void insert(K key, V value){
         auto& bucket = get_map_bucket(key);
@@ -46,6 +55,7 @@ public:
         std::unique_lock<std::shared_mutex> lock(bucket.mutex_);
         bucket.map_.erase(key);
     }
+    
 
 private:
     std::vector<MapBucket> map_buckets_;
