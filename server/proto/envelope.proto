@@ -6,7 +6,7 @@ import "common.proto";
 // 客户端链路消息头，承载通用路由与传输元信息。
 message EnvelopeHeader {
   // 协议版本号，用于兼容控制。
-  uint32 version = 1;
+  uint32 version = 1; 
   // 命令字，按 message_id 规则编码。
   uint32 cmd = 2;
   // 客户端本地递增序号，用于去重和追踪。

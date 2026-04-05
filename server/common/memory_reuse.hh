@@ -12,9 +12,66 @@ namespace memory_reuse{
 
 #define interval_begin_default 128
 #define interval_end_default 1024
-#define queue_size_default 128
+#define buffer_pool_queue_size_default 128
+#define object_pool_queue_size_default 32
 #define buffer_get_push_retry 3
 
+
+// 对象池
+template<typename T>
+class ObjectPool{
+private:
+    ObjectPool(int queue_size)
+        : queue_(std::thread::hardware_concurrency(), lockfree::util::get_proper_size(queue_size))
+    {
+    }
+public:
+    using Object = std::shared_ptr<T>;
+    Object get_object(){
+        T* obj = nullptr;
+        if (queue_.size_approx()) {
+            int retry = buffer_get_push_retry;
+            while(retry--) {
+                if(queue_.try_get(obj)){
+                    break;
+                }
+            }
+        }
+        if (!obj) {
+            obj = new T();
+        }
+        return Object{ obj, std::bind(&ObjectPool::delete_opt, this, std::placeholders::_1) };
+    }
+
+    static ObjectPool<T>& get_instance(int queue_size = object_pool_queue_size_default){
+        static ObjectPool<T> pool(queue_size);
+        return pool;
+    }
+
+    ~ObjectPool(){
+        T* ptr = nullptr;
+        while (queue_.size_approx()){
+            while (queue_.try_get(ptr)){
+                delete ptr;
+                ptr = nullptr;
+            }
+        }
+    }
+
+private:
+    void delete_opt(T* obj){
+        int retry = buffer_get_push_retry;
+        while(retry--){
+            if (queue_.try_put(obj)){
+                return ;
+            }
+        }
+        delete obj;
+    }
+
+private:
+    lockfree::concurrent_queue<T*> queue_;
+};
 // 容器池,不用大量重复申请和释放对象
 template<typename T>
 class BufferPool{
@@ -47,14 +104,15 @@ public:
                     break;
                 }
             }
-        }else {
+        }
+        if (!buf) {
             buf = new std::vector<T>;
             buf->reserve(index);
         }
         return Buffer{ buf, std::bind(&BufferPool::delete_opt, this, std::placeholders::_1) };
     }
 
-    static BufferPool<T>& get_instance(int queue_size = queue_size_default, int interval_begin = interval_begin_default, int interval_end = interval_end_default){
+    static BufferPool<T>& get_instance(int queue_size = buffer_pool_queue_size_default, int interval_begin = interval_begin_default, int interval_end = interval_end_default){
         static BufferPool<T> pool(queue_size, interval_begin, interval_end);
         return pool;
     }
@@ -83,6 +141,7 @@ private:
         if (queue_map.count(size) == 0) {
             delete buff;
         }
+        buff->clear();
         int retry = buffer_get_push_retry;
         while(retry--){
             if (queue_map[size]->try_put(buff)){
@@ -101,7 +160,7 @@ private:
 };
 
 template<typename T>
-inline BufferPool<T>& init_pool(int queue_size = queue_size_default, int interval_begin = interval_begin_default, int interval_end = interval_end_default){
+inline BufferPool<T>& init_buffer_pool(int queue_size = buffer_pool_queue_size_default, int interval_begin = interval_begin_default, int interval_end = interval_end_default){
     return BufferPool<T>::get_instance(queue_size,interval_begin,interval_end);
 }
 
@@ -109,5 +168,16 @@ template<typename T>
 inline typename BufferPool<T>::Buffer get_buffer(size_t capacity){
     return BufferPool<T>::get_instance().get_buffer(capacity);
 }
+
+template<typename T>
+inline ObjectPool<T>& init_object_pool(int queue_size = object_pool_queue_size_default){
+    return ObjectPool<T>::get_instance(queue_size);
+}
+
+template<typename T>
+inline typename ObjectPool<T>::Object get_object(){
+    return ObjectPool<T>::get_instance().get_object();
+}
+
 
 } // namespace memory_reuse

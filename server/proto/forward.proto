@@ -19,24 +19,16 @@ message RouteHeader {
   uint64 trace_id = 7;
 }
 
-// 网关到战斗服的单条转发消息。
-message GwToBattle {
+// 网关到其他服的单条转发消息。
+message GatewayToServer {
   // 路由头信息。
   RouteHeader header = 1;
   // 业务消息体字节流。
   bytes body = 2;
 }
 
-// 网关到逻辑服的单条转发消息。
-message GwToLogic {
-  // 路由头信息。
-  RouteHeader header = 1;
-  // 业务消息体字节流。
-  bytes body = 2;
-}
-
-// 战斗服返回网关的单玩家消息项。
-message BattleToGwItem {
+// 其他服返回网关的单玩家消息项。
+message ServerToGateway {
   // 目标玩家 ID。
   uint64 player_id = 1;
   // 业务命令字。
@@ -45,32 +37,3 @@ message BattleToGwItem {
   bytes body = 3;
 }
 
-// 战斗服返回网关的批量消息。
-message BattleToGwBatch {
-  // 目标网关实例 ID。
-  uint32 gateway_id = 1;
-  // 批量消息项列表。
-  repeated BattleToGwItem items = 2;
-  // 批次追踪 ID。
-  uint64 trace_id = 3;
-}
-
-// 逻辑服返回网关的单玩家消息项。
-message LogicToGwItem {
-  // 目标玩家 ID。
-  uint64 player_id = 1;
-  // 业务命令字。
-  uint32 cmd = 2;
-  // 业务消息体字节流。
-  bytes body = 3;
-}
-
-// 逻辑服返回网关的批量消息。
-message LogicToGwBatch {
-  // 目标网关实例 ID。
-  uint32 gateway_id = 1;
-  // 批量消息项列表。
-  repeated LogicToGwItem items = 2;
-  // 批次追踪 ID。
-  uint64 trace_id = 3;
-}

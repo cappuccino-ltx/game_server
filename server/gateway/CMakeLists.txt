@@ -5,7 +5,7 @@
 
 find_package(Boost REQUIRED COMPONENTS system)
 
-file(GLOB_RECURSE gateway_src ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
+file(GLOB_RECURSE gateway_src ${CMAKE_CURRENT_SOURCE_DIR}/main.cc)
 
 add_executable(gateway ${gateway_src})
 
@@ -18,4 +18,5 @@ target_link_libraries(gateway PRIVATE
     akcp
     lockfreequeue
     proto_obj
+    etcd-cpp-api cpprest
 )

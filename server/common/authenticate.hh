@@ -5,11 +5,11 @@
 namespace common{
 
 struct PlayerInfo{
-    uint64_t version;
-    uint64_t session_id;
-    uint32_t gateway_id;
-    uint32_t zone_id;
-    uint32_t battle_id;
+    uint64_t version;       // 版本号
+    uint64_t session_id;    // 会话ID
+    uint32_t gateway_id;    // 网关服ID
+    uint32_t zone_id;       // 区域ID
+    uint32_t battle_id;     // 战斗服ID
 };
 
 #define PLAYER_INFO_VERSION "version"
