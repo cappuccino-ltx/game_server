@@ -1,6 +1,7 @@
 #pragma once 
 
-
-#define ROUTER_ID_LOGIC "/game/demo/logic"
-#define ROUTER_ID_BATTLE "/game/demo/battle"
+#define ROUTER_ID_GATEWAY "/game/demo/gateway"
+#define ROUTER_ID_INTERNAL_BASE "/game/demo/internal"
+#define ROUTER_ID_LOGIC ROUTER_ID_INTERNAL_BASE"/logic"
+#define ROUTER_ID_BATTLE ROUTER_ID_INTERNAL_BASE"/battle"
 

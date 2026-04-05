@@ -10,21 +10,8 @@ namespace common{
 namespace protocol{
 
 // (message_id >> 24) & 0xff
-#define DIRECTION_CLIENT_TO_GATEWAY 0x01
-#define DIRECTION_GATEWAY_TO_CLIENT 0x02
-#define DIRECTION_GATEWAY_TO_BATTLE 0x11
-#define DIRECTION_BATTLE_TO_GATEWAY 0x12
-#define DIRECTION_GATEWAY_TO_LOGIC 0x21
-#define DIRECTION_LOGIC_TO_GATEWAY 0x22
 // (message_id >> 16) & 0xff
-#define MODULE_AUTH         0x01
-#define MODULE_SESSION      0x02
-#define MODULE_MOVE         0x03
-#define MODULE_STATE        0x04
-#define MODULE_SKILL        0x05
-#define MODULE_LOGIC        0x06
-#define MODULE_GATEWAY      0x0F
-#define MODULE_INTERNAL     0x1F
+
 
 // version 1.0.0
 #define TRANSPORT_VERSION 1
@@ -46,6 +33,15 @@ struct util{
         message_id &= ~(0xff << 16);
         message_id |= (module << 16);
     }
+
+    static inline uint32_t get_action(uint32_t message_id){
+        return message_id & 0xff;
+    }
+    static inline void set_action(uint32_t& message_id, uint32_t action){
+        message_id &= ~(0xff);
+        message_id |= (action << 00);
+    }
+
     // send to internal server
     static inline std::shared_ptr<mmo::transport::GatewayToServer> make_gateway_to_server(const std::shared_ptr<mmo::transport::Envelope>& envelope, const std::shared_ptr<common::PlayerInfo>& player_info){
         auto gateway_to_server = memory_reuse::get_object<mmo::transport::GatewayToServer>();
