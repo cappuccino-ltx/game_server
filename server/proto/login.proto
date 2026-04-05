@@ -6,16 +6,15 @@ package mmo.login;
 message C2L_LoginReq {
   string account = 1;     // 账号
   string password = 2;    // 密码
-  string token = 3;       // 上次登录的token（可选）
-  string device = 4;      // 设备ID
+  uint64 session_id = 3;  // 登录id
 }
 
 // 登录服 -> 客户端
 message L2C_LoginRsp {
   bool ok = 1;
   string player_id = 2;   // 玩家ID
-  string token = 3;       // 登录token
+  uint64 session_id = 3;  // 登录id
   string gateway_ip = 4;  // 网关IP
-  uint32 gateway_port = 5;
-  string reason = 6;      // 失败原因
+  uint32 gateway_port = 6;
+  string reason = 7;      // 失败原因
 }

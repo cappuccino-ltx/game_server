@@ -21,21 +21,20 @@ private:
 public:
     using ptr = std::shared_ptr<UserRedis>;
     UserRedis(const std::shared_ptr<sw::redis::Redis> &client) : _client(client) {}
-    // ==============================Token的缓存======================================
-    // 设置token
-    bool SetToken(const std::string &token, const std::string &player_id, int ttlSenconds = 300) {
+    // 设置
+    bool Set(const std::string &id, const std::string &account, int ttlSenconds = 300) {
         try {
-            _client->set(token, player_id, std::chrono::seconds(ttlSenconds));
+            _client->set(id, account, std::chrono::seconds(ttlSenconds));
             return true;
         } catch (const sw::redis::Error &err) {
-            errorlog << "set token error" << err.what();
+            errorlog << "set session_id error" << err.what();
             return false;
         }
     }
-    // 获取token对应的玩家id
-    std::optional<std::string> GetPlayerId(const std::string &token) {
+    // 获取玩家id
+    std::optional<std::string> GetPlayerId(const std::string &session_id) {
         try {
-            auto val = _client->get(token);
+            auto val = _client->get(session_id);
             if (val)
                 return val;
         } catch (const sw::redis::Error &err) {
@@ -43,21 +42,21 @@ public:
         }
         return std::nullopt;
     }
-    // 删除token
-    bool DelToken(const std::string &token) {
+    // 删除
+    bool Del(const std::string &session_id) {
         try {
             // 成功删除时返回的是删除token的数量，没有token时返回的是0
-            _client->del(token);
+            _client->del(session_id);
             return true;
         } catch (const sw::redis::Error &err) {
             errorlog << "DelToken failes!" << err.what();
             return false;
         }
     }
-    // 刷新token的时间
-    bool RefreshToken(const std::string &token, const int ttlSenconds) {
+    // 刷新时间
+    bool Refresh(const std::string &id, const int ttlSenconds) {
         try {
-            return _client->expire(token, std::chrono::seconds(ttlSenconds));
+            return _client->expire(id, std::chrono::seconds(ttlSenconds));
         } catch (const sw::redis::Error &err) {
             errorlog << "failed to refresh token time!" << err.what();
             return false;

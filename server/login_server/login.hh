@@ -52,17 +52,18 @@ public:
             rsp.set_reason(reason);
             return;
         };
-        // 1. 从数据库中校验账号密码
+        // 从数据库中校验账号密码
         std::string reason;
         if (!CheckAccount(req.account(), req.password(),reason)) {
             return handler(false,reason);
         }
-        // 2. 从redis中查询是否已经登录过，如果已经登录过，直接返回之前的token和网关信息
-        if (token_exists(req.token())) {
-            redis_->RefreshToken(req.token(), 1800); 
-            auto player_id = redis_->GetPlayerId(req.token());
+        // 从redis中查询是否已经登录过
+        if (token_exists(req.session_id())) {
+            redis_->Refresh(to_string(req.session_id()), 1800); 
+            redis_->Refresh(req.account(), 1800);
+            auto player_id = redis_->GetPlayerId(to_string(req.session_id()));
             if (player_id) {
-                rsp.set_token(req.token());
+                rsp.set_session_id(req.session_id());
                 rsp.set_player_id(*player_id);
                 GatewayInfo gws = select_gateway();
                 rsp.set_gateway_ip(gws.host);
@@ -70,17 +71,22 @@ public:
                 return handler(true, "登录成功");
             }
         }
-        std::string token = generate_token();
-        // 3. 网关选择
+        // 玩家id
+        std::string player_id = generate_token();
+        // 登录id
+        std::string session_id = generate_token();
+        // 网关选择
         GatewayInfo gateway = select_gateway();
-        // 4. 写入redis
-        write_to_redis(req.account(), token, gateway);
-        // 5. 返回登录结果
+        // 写入redis
+        redis_->Set(session_id, req.account(), 1800);
+        redis_->Set(player_id, req.account(), 1800);
+        // 返回登录结果
         rsp.set_ok(true);
         rsp.set_reason("登录成功");
-        rsp.set_token(token);
-        // rsp.mutable_gateway()->set_host(gateway.host);
-        // rsp.mutable_gateway()->set_port(gateway.port);
+        rsp.set_session_id(stoi(session_id));
+        rsp.set_player_id(player_id);
+        rsp.set_gateway_ip(gateway.host);
+        rsp.set_gateway_port(gateway.port);
     }
 private:
     // token生成
@@ -89,33 +95,17 @@ private:
     }
     // 网关选择
     GatewayInfo select_gateway(){
-        // 简单的轮询算法
         size_t idx = index++ % gws.size();
-        gws[idx].load++; // 增加负载
+        gws[idx].load++;
         return gws[idx];
     }
     // 查询token是否存在
-    bool token_exists(const std::string& token){
-        return redis_->exists(token);
-    }
-    // 写入redis
-    void write_to_redis(const std::string& account, const std::string& token
-        , const GatewayInfo& gateway){
-        // 构建登录信息
-        // mmo::login::LoginInfo login_info;
-        // login_info.set_account(account);
-        // login_info.set_token(token);
-        // login_info.mutable_gateway()->set_host(gateway.host);
-        // login_info.mutable_gateway()->set_port(gateway.port);
-        // // 序列化
-        // std::string value;
-        // login_info.SerializeToString(&value);
-        // // 写入redis，设置过期时间为30分钟
-        // redis_.setex("login:" + account, value, 1800);
+    bool token_exists(const uint64_t& session_id){
+        return redis_->exists(std::to_string(session_id));
     }
     // 从数据库中校验账号
-    bool CheckAccount(const std::string& username, const std::string& password,std::string& reason){
-
+    bool CheckAccount(const std::string& act, const std::string& password,std::string& reason){
+        return odb_->exists_by_account(act, password, reason);
     }
 
 private:

@@ -19,12 +19,12 @@ class UserData{
         // ========================
         // 查询用户
         // ========================
-        bool exists_by_account(const std::string& account,const std::string& password
+        bool exists_by_account(const std::string& act,const std::string& password
                                 , std::string& reason) {
             try {
                 odb::transaction t(db_->begin());
                 auto result = db_->query<User>(
-                    odb::query<User>::account == account);
+                    odb::query<User>::account == act);
                 if (result.empty()) {
                     reason = "account not exist";
                     return false;
