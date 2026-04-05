@@ -1,22 +1,27 @@
 #pragma once 
-
+// std 
 #include <functional>
 #include <memory>
-#include <thread>
-// #include <unordered_map>
-
+// common
+#include <etcd.hh>
+// gateway
 #include <service/gateway_service.hh>
 #include <authentication/authentication.hh>
 #include <concurrent_map/concurrent_map.hh>
 #include <thread_local_store/thread_local_store.hh>
 #include <route/route.hh>
-
+// pb
 #include <envelope.pb.h>
 
 
 namespace gateway{
 using std::placeholders::_1;
 using std::placeholders::_2;
+
+struct DiscoveryConfig{
+    std::string host;
+    std::string base_dir;
+};
 
 class Controller{
 public:
@@ -32,20 +37,33 @@ public:
         authentication_->set_authenticate_callback(std::bind(&Controller::on_player_authenticated,this,_1,_2));
         return *this;
     }
-    Controller& init_route(){
-        route_ = std::make_shared<Route>();
+    Controller& init_route(const RouteCenterConfig& config){
+        route_ = std::make_shared<RouteCenter>(config);
+        route_->set_send_to_client_callback(std::bind(&Controller::send_to_client,this,_1,_2));
+        route_->async_start();
         return *this;
     }
-    Controller& start(int udp_port){
-        udp_thread = std::make_shared<std::thread>([this,udp_port](){
-            udp_service->start(udp_port);
-        });
+    Controller& init_discovery(const DiscoveryConfig& config){
+        discovery_.setHost(config.host)
+            .setBaseDir(config.base_dir)
+            .setUpdateCallback([this](const std::string &key, const std::string &value){
+                infolog("server online : {} {}" ,key, value);
+                int pos = value.find(":");
+                std::string ip = value.substr(0, pos);
+                int port = std::stoi(value.substr(pos + 1));
+                route_->add_route_target(key, ip, port);
+            }).setRemoveCallback([](const std::string &key, const std::string &value){
+                errorlog("server offline : {} {}" ,key, value);
+            }).start();
         return *this;
+    }
+    void start(int udp_port){
+        udp_service->start(udp_port);
     }
 
 private:
     void udp_service_message(kcp::channel_view channel, std::shared_ptr<std::vector<uint8_t>> message){
-        std::shared_ptr<mmo::transport::Envelope> envelope = std::make_shared<mmo::transport::Envelope>();
+        std::shared_ptr<mmo::transport::Envelope> envelope = memory_reuse::get_object<mmo::transport::Envelope>();
         envelope->ParseFromArray(message->data(), message->size());
         auto info = authentication_->authenticate(envelope->header().player_id());
         if(info){
@@ -77,11 +95,18 @@ private:
             packages_thread_local_.erase(player_id);
         }
     }
+    // route callback
+    void send_to_client(uint64_t player_id, std::shared_ptr<std::vector<uint8_t>> message){
+        kcp::channel_view channel = player_channels_[player_id];
+        if (channel){
+            channel->send(message);
+        }
+    }
 
 private:
     std::shared_ptr<GatewayService> udp_service;
-    std::shared_ptr<std::thread> udp_thread;
-    std::shared_ptr<Route> route_;
+    common::Discovery discovery_;
+    std::shared_ptr<RouteCenter> route_;
     std::shared_ptr<Authentication> authentication_;
     ConcurrentMap<uint64_t, kcp::channel_view> player_channels_;
     ConcurrentMap<uint64_t, kcp::channel_view> authenticating_;

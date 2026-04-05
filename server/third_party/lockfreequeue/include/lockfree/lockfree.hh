@@ -401,6 +401,27 @@ public:
         }
         return false;
     }
+    size_t get_all(std::vector<T>& data){
+        data.clear();
+        size_t total_size = 0;
+        std::vector<int> sizes(queue_size_, 0);
+        for(int i = 0; i < queue_size_; i++) {
+            sizes[i] = queues_[i]->size_approx();
+            total_size += sizes[i];
+        }
+        data.reserve(total_size);
+        for(int i = 0; i < queue_size_; i++) {
+            int size = sizes[i];
+            size_t index = index_++ % queue_size_;
+            while(size--){
+                T t;
+                if(queues_[index]->try_get(t)){
+                    data.push_back(t);
+                }
+            }
+        }
+        return total_size;
+    }
 
     size_t size_approx(){
         size_t ret = 0;

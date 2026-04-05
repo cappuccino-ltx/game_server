@@ -25,23 +25,26 @@ public:
         : map_buckets_(num_buckets)
     {}
 
-    V& operator[](K key){
+    V operator[](K key){
         return get(key);
     }
 
-    V& get(K key){
+    V get(K key){
         auto& bucket = get_map_bucket(key);
-        std::shared_lock<std::shared_mutex> lock(bucket.mutex_);
+        {
+            std::shared_lock<std::shared_mutex> lock(bucket.mutex_);
+            auto it = bucket.map_.find(key);
+            if (it != bucket.map_.end()){
+                return it->second;
+            }
+        }
+        std::unique_lock<std::shared_mutex> lock(bucket.mutex_);
         return bucket.map_[key];
     }
-    typename Map::iterator find(K key){
+    bool find(K key){
         auto& bucket = get_map_bucket(key);
         std::shared_lock<std::shared_mutex> lock(bucket.mutex_);
-        return bucket.map_.find(key);
-    }
-    typename Map::iterator end(K key){
-        auto& bucket = get_map_bucket(key);
-        return bucket.map_.end();
+        return bucket.map_.find(key) != bucket.map_.end();
     }
 
     void insert(K key, V value){

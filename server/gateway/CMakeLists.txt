@@ -18,4 +18,5 @@ target_link_libraries(gateway PRIVATE
     akcp
     lockfreequeue
     proto_obj
+    etcd-cpp-api cpprest
 )

@@ -12,7 +12,6 @@
 
 #include <string>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 #include <functional>
 #include <memory>
@@ -54,15 +53,14 @@ public:
         authenticate_callback_ = back;
     }
     std::shared_ptr<common::PlayerInfo> authenticate(uint64_t player_id){
-        auto info = player_info_.find(player_id);
-        bool is_authenticated =  info != player_info_.end(player_id);
+        bool is_authenticated = player_info_.find(player_id);
         if (!is_authenticated){
             // 异步请求redis验证玩家是否登录
             while(!player_id_queue_.try_put(player_id));
             player_id_queue_cond_.notify_one();
             return nullptr;
         }
-        return std::make_shared<common::PlayerInfo>(info->second);
+        return std::make_shared<common::PlayerInfo>(player_info_.get(player_id));
     }
 
     void stop(){
