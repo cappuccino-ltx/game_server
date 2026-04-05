@@ -70,7 +70,7 @@ public:
             redis_->hset(key, fields.begin(), fields.end());
             return true;
         } catch (const std::exception& e) {
-            errorlog("hset redis key failed, key: {}, fields: {}, error: {}", key, fields, e.what());
+            errorlog("hset redis key failed, key: {}, error: {}", key, e.what());
             return false;
         }
     }

@@ -20,7 +20,7 @@ namespace common {
         {}
 
         bool registory(const std::string &key, const std::string &value){
-            infolog("register {}" ,key);
+            infolog("register: {} {}", key, value);
             etcd::Response rsp = client->put(key, value, lease);
             if (!rsp.is_ok()) {
                 return false;
