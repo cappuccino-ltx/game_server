@@ -110,3 +110,12 @@ enum LogicAction {
   // 任务状态更新通知。
   QUEST_UPDATE_NTF = 4;
 }
+
+// 逻辑模块动作码。
+enum InternalAction {
+  // 未指定动作。
+  IA_UNSPECIFIED = 0;
+  // 请求删除redis 本地缓存字段
+  IA_DELETE_CACHE_REQ = 1;
+}
+

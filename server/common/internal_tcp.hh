@@ -10,6 +10,7 @@
 #include <memory>
 #include <unordered_set>
 #include <lockfree/lockfree.hh>
+#include <log.hh>
 
 /*
 
@@ -230,6 +231,8 @@ public:
     {
         if (port > 0) {
             acceptor_ = std::make_shared<btcp::acceptor>(io_context_,btcp::endpoint(btcp::v4(),port));
+            acceptor_->set_option(asio::ip::tcp::acceptor::reuse_address(true));
+            infolog("internal tcp server start on port {}", port);
             do_accept();
         }
     }
