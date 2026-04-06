@@ -13,8 +13,7 @@ public:
     }
 #pragma db id auto
   unsigned long id;
-
-
+  
 #pragma db index type("VARCHAR(255)")
     std::string account;
 

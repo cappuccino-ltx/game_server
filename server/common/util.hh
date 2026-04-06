@@ -42,3 +42,12 @@ private:
         return generate_token(32) + std::to_string(now);
     }
 };
+
+class Generate_ID{
+public:
+    static uint64_t generate_id() {
+        static thread_local std::mt19937_64 rng(std::random_device{}());
+        static std::uniform_int_distribution<uint64_t> dist;
+        return dist(rng);
+    }
+};

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
+// #include <etcd/Client.hpp>
+// #include <etcd/SyncClient.hpp>
 #include <memory>
 #include <odb/mysql/database.hxx>
 #include <string>
@@ -11,7 +14,9 @@
 #include "login.pb.h"
 #include "user_operator.hh"
 #include "util.hh"
+#include "etcd.hh"
 #include "user_redis.h"
+#include "redis_store_name.hh"
 
 
 struct AuthenticationConfig_{
@@ -36,16 +41,53 @@ std::vector<GatewayInfo> gws = {
 };
 
 
+class GatewaySelector {
+public:
+    using ptr = std::shared_ptr<GatewaySelector>;
+    GatewaySelector(const std::string& host, const std::string& base_dir) {
+        gateways_.push_back(9001);
+        gateways_.push_back(9002);
+        discovery_ = std::make_shared<common::Discovery>();
+
+        discovery_->setHost(host)
+            .setBaseDir(base_dir)
+            .setUpdateCallback([](const std::string &key, const std::string &value){
+            infolog("host {} {}" ,key, value);
+            }).setRemoveCallback([](const std::string &key, const std::string &value){
+            infolog("host {} {}" ,key, value);
+            }).start();
+    }
+
+    uint32_t pick_one() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (gateways_.empty()) {
+            return 0;
+        }
+        // 轮询
+        int idx = rand() % gateways_.size();
+        return gateways_[idx];
+    }
+
+private:
+    std::vector<uint32_t> gateways_;
+    std::mutex mutex_;
+    common::Discovery::ptr discovery_;
+};
+
+
+
 
 class LoginService{
 public:
     using ptr = std::shared_ptr<LoginService>;
     LoginService(const std::shared_ptr<odb::mysql::database>& odb
-        , const std::shared_ptr<sw::redis::Redis>& redis):
+        , const std::shared_ptr<sw::redis::Redis>& redis,const std::string& etcd_host,const std::string& base_dir):
         odb_(std::make_shared<UserData>(odb)),
-        redis_(std::make_shared<UserRedis>(redis))
+        redis_(redis),
+        select_(std::make_shared<GatewaySelector>(etcd_host,base_dir))
     {}
     // 登录逻辑
+
     void login(const mmo::login::C2L_LoginReq& req,mmo::login::L2C_LoginRsp& rsp){
         auto handler = [&](const bool ok,const std::string& reason ){
             rsp.set_ok(ok);
@@ -57,51 +99,44 @@ public:
         if (!CheckAccount(req.account(), req.password(),reason)) {
             return handler(false,reason);
         }
-        // 从redis中查询是否已经登录过
-        if (token_exists(req.session_id())) {
-            redis_->Refresh(to_string(req.session_id()), 1800); 
-            redis_->Refresh(req.account(), 1800);
-            auto player_id = redis_->GetPlayerId(to_string(req.session_id()));
-            if (player_id) {
-                rsp.set_session_id(req.session_id());
-                rsp.set_player_id(*player_id);
-                GatewayInfo gws = select_gateway();
-                rsp.set_gateway_ip(gws.host);
-                rsp.set_gateway_port(gws.port);
-                return handler(true, "登录成功");
-            }
-        }
         // 玩家id
-        std::string player_id = generate_token();
+        uint64_t player_id = generate_id();
         // 登录id
-        std::string session_id = generate_token();
-        // 网关选择
-        GatewayInfo gateway = select_gateway();
-        // 写入redis
-        redis_->Set(session_id, req.account(), 1800);
-        redis_->Set(player_id, req.account(), 1800);
+        uint64_t session_id = generate_id();
+        // 网关选择 -> etcd
+        auto gateway = select_->pick_one();
+        // 写入redis PlayerInfo->redis
+        std::string key = REDIS_STORE_NAME_SESSION_TOKEN + std::to_string(player_id);
+
+        std::map<std::string, std::string> fields;
+        fields["version"] = "1";
+        fields["session_id"] = std::to_string(session_id);
+        fields["gateway_id"] = std::to_string(gateway);
+        fields["zone_id"] = "1";
+        fields["battle_id"] = "0";
+
+        redis_.hsetall(key, fields);
+
         // 返回登录结果
         rsp.set_ok(true);
         rsp.set_reason("登录成功");
-        rsp.set_session_id(stoi(session_id));
+        rsp.set_session_id(session_id);
         rsp.set_player_id(player_id);
-        rsp.set_gateway_ip(gateway.host);
-        rsp.set_gateway_port(gateway.port);
     }
 private:
     // token生成
     std::string generate_token(){
         return Generate_UUID::generate_uuid();
     }
+    // PlayerID生成
+    uint64_t generate_id(){
+        return Generate_ID::generate_id();
+    }
     // 网关选择
     GatewayInfo select_gateway(){
-        size_t idx = index++ % gws.size();
+        size_t idx = index_++ % gws.size();
         gws[idx].load++;
         return gws[idx];
-    }
-    // 查询token是否存在
-    bool token_exists(const uint64_t& session_id){
-        return redis_->exists(std::to_string(session_id));
     }
     // 从数据库中校验账号
     bool CheckAccount(const std::string& act, const std::string& password,std::string& reason){
@@ -110,45 +145,9 @@ private:
 
 private:
     UserData::ptr odb_;
-    UserRedis::ptr redis_;
-    std::atomic<size_t> index{0};
-};
-
-
-
-class LoginServiceBuild{
-public:
-    LoginServiceBuild(){}
-    
-    LoginServiceBuild& make_odb_client(
-        const std::string& user,
-        const std::string& passwd,
-        const std::string& db_name,
-        const std::string& host,
-        size_t port,
-        const std::string& charset,
-        size_t conn_pool_num
-    ) {
-        _odb = mysql::mysql_build::build(user, passwd, db_name, host, port, charset, conn_pool_num);
-        return *this;
-    }
-    LoginServiceBuild& make_redis_client(const std::string& host,int port, int db_id,bool keepalive = true) {
-        _redis = redis::redis_build::build(host, port, db_id,keepalive);
-        return *this;
-    }
-    LoginService::ptr build() {
-    if (!_odb) {
-        errorlog << "failed to _odb uninitizalier";
-        abort();
-    }
-    if (!_redis) {
-        errorlog << "failed to _redis uninitizalier";
-        abort();
-    }
-    return std::shared_ptr<LoginService>(new LoginService(_odb, _redis));
-    }
-
-private:
-    shared_ptr<odb::mysql::database> _odb;
-    std::shared_ptr<sw::redis::Redis> _redis ;
+    redis::Redis redis_;
+    uint32_t index_ {0};
+    common::Discovery::ptr client_;
+    GatewaySelector::ptr select_;
+    std::string dir_;
 };

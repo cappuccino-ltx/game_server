@@ -56,4 +56,6 @@ target_link_libraries(login PRIVATE
     # -lhiredis
     # -lredis++
     proto_obj
+    # etcd-cpp-api
+    cpprest
 )

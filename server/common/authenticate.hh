@@ -3,7 +3,19 @@
 #include <cstdint>
 
 namespace common{
+/*
+// player_id : 100
+// username -> player_id
+// username:210020202 -> 100
+session:token:player_id -> {
+    version: 1,
+    session_id: 1,
+    gateway_id: 1,
+    zone_id: 1,
+    battle_id: 1
+}
 
+*/ 
 struct PlayerInfo{
     uint64_t version;       // 版本号
     uint64_t session_id;    // 会话ID
