@@ -50,6 +50,9 @@ namespace gateway{
         envelope->ParseFromArray(message->data(), message->size());
         auto info = authentication_->authenticate(envelope->header().player_id());
         if(info){
+            if (envelope->header().token() != std::to_string(info->session_id)){
+                return;
+            }
             // 认证成功, 向上交付 todo...
             player_channels_[envelope->header().player_id()] = channel;
             route_->client_to_route(envelope, info);
@@ -70,6 +73,10 @@ namespace gateway{
                 // 从本地存储中获取所有待交付的包
                 auto& packages = packages_thread_local_.get(player_id);
                 for(auto& package : packages){
+                    // 验证 token 是否匹配
+                    if (package->header().token() != std::to_string(info->session_id)){
+                        continue;
+                    }
                     route_->client_to_route(package, info);
                 }
                 packages_thread_local_.erase(player_id);

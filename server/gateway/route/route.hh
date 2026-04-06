@@ -12,9 +12,7 @@
 #include "envelope.pb.h"
 
 #include "concurrent_map.hh"
-#include "forward.pb.h"
-#include "ids.pb.h"
-#include "memory_reuse.hh"
+
 
 
 namespace gateway{
