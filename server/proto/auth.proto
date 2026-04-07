@@ -84,3 +84,4 @@ message GW2BATTLE_PlayerDetach {
   // 移除原因。
   string reason = 2;
 }
+

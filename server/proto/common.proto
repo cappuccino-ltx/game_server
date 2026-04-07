@@ -77,5 +77,6 @@ message ZoneId {
   uint32 value = 1;
 }
 
+
 // 空消息，占位使用。
 message Empty {}

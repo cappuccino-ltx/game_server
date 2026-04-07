@@ -6,7 +6,7 @@
 #include <etcd.hh>
 #include <concurrent_map.hh>
 // gateway
-#include <service/gateway_service.hh>
+#include <listen/gateway_listen.hh>
 #include <authentication/authentication.hh>
 #include <thread_local_store/thread_local_store.hh>
 #include <route/route.hh>
