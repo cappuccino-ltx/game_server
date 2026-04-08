@@ -19,4 +19,7 @@ public:
 
 #pragma db not_null type("VARCHAR(255)")
     std::string password;
+
+#pragma db not_null type("bigint")
+    uint64_t player_id;
 };

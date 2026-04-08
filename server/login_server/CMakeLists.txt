@@ -7,7 +7,7 @@ set(odbfiles "user.hh")
 set(odb_path ${CMAKE_SOURCE_DIR}/odb)
 set(compile_output_path ${CMAKE_BINARY_DIR}/odb)
 file(MAKE_DIRECTORY ${compile_output_path})
-
+find_package(Boost REQUIRED COMPONENTS system)
 
 foreach(file ${odbfiles})
 
@@ -49,13 +49,15 @@ target_include_directories(login PRIVATE
 
 target_link_libraries(login PRIVATE
     # odb
-    leveldb 
-    odb 
-    odb-mysql 
+    leveldb odb odb-mysql 
     # redis
-    # -lhiredis
-    # -lredis++
+    -lhiredis -lredis++
+    # proto file
     proto_obj
     # etcd-cpp-api
-    cpprest
+    etcd-cpp-api cpprest 
+    #boost
+    Boost::system
+    # lock free
+    lockfreequeue
 )

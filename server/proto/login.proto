@@ -13,6 +13,6 @@ message L2C_LoginRsp {
   bool ok = 1;
   uint64 player_id = 2;   // 玩家ID
   uint64 session_id = 3;  // 登录id
-  uint32 gateway_ip = 4;  // 网关ID
+  string gateway_host = 4;  // 网关ID
   string reason = 7;      // 失败原因
 }
