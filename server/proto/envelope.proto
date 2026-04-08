@@ -15,8 +15,8 @@ message EnvelopeHeader {
   uint64 player_id = 4;
   // 客户端发送时间戳，毫秒。
   uint32 timestamp_ms = 5;
-  // 传输可靠性等级。
-  mmo.common.QoS qos = 6;
+  // token, 用于验证客户端身份
+  string token = 6;
 }
 
 // 客户端统一封包，body 存放具体业务 protobuf 二进制。
