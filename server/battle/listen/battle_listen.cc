@@ -1,4 +1,3 @@
-#pragma once
 
 #include "battle_listen.hh"
 #include "ids.pb.h"
@@ -19,16 +18,17 @@ namespace battle {
     }
 
     void BattleListen::send_to_gateway(uint16_t id, const std::shared_ptr<std::vector<uint8_t>>& msg){
-        auto it = _channels.find(id);
-        if (it != _channels.end()){
-            it->second->write(msg);
+        auto channel = _channels.get(id);
+        if (channel){
+            channel->write(msg);
         }
     }
 
     void BattleListen::send_to_player(uint64_t player_id, const std::shared_ptr<std::vector<uint8_t>>& msg){
-        auto it = _auth_channels.find(player_id);
-        if (it != _auth_channels.end()){
-            it->second->write(msg);
+        auto id = _auth_channels.get(player_id);
+        auto channel = _channels.get(id);
+        if (channel){
+            channel->write(msg);
         }
     }
 
@@ -39,10 +39,7 @@ namespace battle {
             // disconnect
             infolog("Link outgoing, channel address : {}", channel->endpoint().address().to_string());
             // _channels.erase(channel->id());
-            auto it = _channels.find(channel->id());
-            if (it != _channels.end()){
-                _channels.erase(it);
-            }
+            _channels.remove(channel->id());
         }
     }
     void BattleListen::on_message(common::tcp::Channel channel, void* data, size_t size, const std::string& flag){
@@ -71,14 +68,14 @@ namespace battle {
             if (action == mmo::ids::AuthAction::AUTH_BIND_REQ){
                 // auth bind req
                 // check auth channel
-                auto it = _auth_channels.find(msg->header().player_id());
-                if (it != _auth_channels.end()){
+                auto exist = _auth_channels.find(msg->header().player_id());
+                if (exist){
                     // 顶号请求或者断网重连
                     debuglog("auth bind req, player id {} already bind, switch to new channel", msg->header().player_id());
                     // 发送清理前一个 channel 的消息
-                    send_kick_offline(it->second,msg->header().player_id());
+                    send_kick_offline(_channels.get(exist),msg->header().player_id());
                 }
-                it->second = channel;
+                _auth_channels.insert(msg->header().player_id(), channel->id());
             }
         }
         if (message_callback) {
@@ -105,6 +102,9 @@ namespace battle {
         msg->SerializeToArray(buffer->data(), size);
         msg->Clear();
         channel->write(buffer);
+    }
+    void BattleListen::start(){
+        _listen.sync_start();
     }
 
 

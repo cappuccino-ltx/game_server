@@ -39,6 +39,8 @@ enum Module {
   GATEWAY = 7;
   // 服务内部保留模块。
   INTERNAL = 8;
+  // error module
+  ERROR = 9;
 }
 
 // 登录模块动作码。
@@ -119,6 +121,15 @@ enum InternalAction {
   IA_UNSPECIFIED = 0;
   // 请求删除redis 本地缓存字段
   IA_DELETE_CACHE_REQ = 1;
+  // 登录之后, 登录服直接将玩家实体信息发送到战斗服,
+  IA_PRELOAD_ENTITY_REQ = 2;
+}
+// 逻辑模块动作码。
+enum ErrorAction {
+  // 未指定动作。
+  EA_UNSPECIFIED = 0;
+  // 登录错误
+  EA_AUTH_BIND_REQ_FAILED = 1;
 }
 
 

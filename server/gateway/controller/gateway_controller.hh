@@ -48,8 +48,8 @@ private:
     std::shared_ptr<common::Register> register_;
     std::shared_ptr<RouteCenter> route_;
     std::shared_ptr<Authentication> authentication_;
-    ConcurrentMap<uint64_t, kcp::channel_view> player_channels_;
-    ConcurrentMap<uint64_t, kcp::channel_view> authenticating_;
+    common::ConcurrentMap<uint64_t, kcp::channel_view> player_channels_;
+    common::ConcurrentMap<uint64_t, kcp::channel_view> authenticating_;
     ThreadLocalStore<uint64_t, std::shared_ptr<mmo::transport::Envelope>> packages_thread_local_;
 };
 

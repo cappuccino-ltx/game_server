@@ -6,6 +6,14 @@
 
 namespace redis{
 
+
+struct RedisConfig{
+    std::string host = "localhost";
+    int port = 6379;
+    int db_id = 0;
+    bool keey_alive = true;
+};
+
 class redis_build{
 public:
     static inline std::shared_ptr<sw::redis::Redis> build(
@@ -64,8 +72,7 @@ public:
             return false;
         }
     }
-
-    bool hsetall(const std::string& key, const std::map<std::string, std::string>& fields){
+    bool hsetall(const std::string& key, const std::unordered_map<std::string, std::string>& fields){
         try {
             redis_->hset(key, fields.begin(), fields.end());
             return true;

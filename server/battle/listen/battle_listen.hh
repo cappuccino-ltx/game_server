@@ -4,10 +4,10 @@
 
 #include "internal_tcp.hh"
 
+#include <cstdint>
 #include <functional>
 #include <string>
-#include <unordered_map>
-
+#include <concurrent_map.hh>
 namespace battle {
 using  std::placeholders::_1;
 using  std::placeholders::_2;
@@ -23,6 +23,8 @@ public:
 
     void send_to_player(uint64_t player_id, const std::shared_ptr<std::vector<uint8_t>>& msg);
 
+    void start();
+
 private:
     void on_connect(common::tcp::Channel channel, bool linked, const std::string& flag);
     void on_message(common::tcp::Channel channel, void* data, size_t size, const std::string& flag);
@@ -30,8 +32,8 @@ private:
 
 private:
     common::tcp::InternalTcp _listen;
-    std::unordered_map<uint16_t, common::tcp::Channel> _channels;
-    std::unordered_map<uint64_t, common::tcp::Channel> _auth_channels;
+    common::ConcurrentMap<uint16_t, common::tcp::Channel> _channels;
+    common::ConcurrentMap<uint64_t, uint16_t> _auth_channels;
     std::function<void(std::shared_ptr<mmo::transport::GatewayToServer>)> message_callback;
 };
 
