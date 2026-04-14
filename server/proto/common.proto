@@ -36,13 +36,6 @@ message QuantizedVector3 {
 
 // 量化朝向，推荐用于高频同步。
 // yaw16 映射 [0,360)，pitch16 映射 [-90,90] 或项目定义范围。
-message QuantizedLook {
-  // 偏航角量化值（16位语义，存储在 uint32）。
-  uint32 yaw16 = 1;
-  // 俯仰角量化值（16位语义，存储在 uint32）。
-  uint32 pitch16 = 2;
-}
-
 // 打包后的朝向信息，通常由 yaw16 与 pitch16 组合为一个 uint32。
 message PackedLookAngles {
   // 高16位 yaw、低16位 pitch 的打包值。
@@ -76,6 +69,7 @@ message ZoneId {
   // Zone 编号。
   uint32 value = 1;
 }
+
 
 // 空消息，占位使用。
 message Empty {}

@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <mutex>
 #include <redis.hh>
-#include <redis_store_name.hh>
 
 #include <lockfree/lockfree.hh> 
 #include <akcp/channel.hh>
@@ -45,7 +44,7 @@ private:
 
 private:
     redis::Redis redis_;
-    ConcurrentMap<uint64_t, common::PlayerInfo> player_info_;
+    common::ConcurrentMap<uint64_t, common::PlayerInfo> player_info_;
     std::function<void(uint64_t, std::shared_ptr<common::PlayerInfo>)> authenticate_callback_;
     std::vector<std::thread> threads_;
     std::atomic<bool> stop_ {false};

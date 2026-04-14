@@ -44,17 +44,19 @@ void RouteCenter::client_to_route(std::shared_ptr<mmo::transport::Envelope> enve
             auto channel = route_targets_.get(ROUTER_ID_LOGIC);
             if (!channel) {
                 errorlog("logic server not connected");
-                return;
+            }else {
+                uint32_t cmd = envelope->header().cmd();
+                common::protocol::util::set_direction(cmd, mmo::ids::Direction::GW2LOGIC);
+                transport_packet->mutable_header()->set_cmd(cmd);
+                size_t size = transport_packet->ByteSizeLong();
+                auto buffer = memory_reuse::get_buffer<uint8_t>(size);
+                buffer->resize(size);
+                transport_packet->SerializeToArray(buffer->data(), size);
+                channel->write(buffer);
             }
-            uint32_t cmd = envelope->header().cmd();
-            common::protocol::util::set_direction(cmd, mmo::ids::Direction::GW2LOGIC);
-            transport_packet->mutable_header()->set_cmd(cmd);
-            size_t size = transport_packet->ByteSizeLong();
-            auto buffer = memory_reuse::get_buffer<uint8_t>(size);
-            buffer->resize(size);
-            transport_packet->SerializeToArray(buffer->data(), size);
-            channel->write(buffer);
-            break;
+            if (module != mmo::ids::Module::AUTH){
+                break;
+            }
         }
         case mmo::ids::Module::MOVE:
         case mmo::ids::Module::STATE:

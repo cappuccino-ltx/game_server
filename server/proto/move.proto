@@ -8,17 +8,13 @@ message C2S_MoveInput {
   // 发起移动的实体 ID。
   uint64 entity_id = 1;
   // 客户端预测位置。
-  mmo.common.Vector3 pos = 2;
+  mmo.common.QuantizedVector3 pos = 2;
   // 朝向角。
-  float yaw = 3;
+  mmo.common.PackedLookAngles rotation = 3;
   // 客户端移动序列号。
   uint32 move_seq = 4;
   // 输入按键位掩码。
   uint32 key_mask = 5;
-  // 量化位置（高频链路推荐），与 pos 二选一或同时携带用于灰度期。
-  mmo.common.QuantizedVector3 pos_q = 6;
-  // 打包朝向（高频链路推荐），与 yaw 二选一或同时携带用于灰度期。
-  mmo.common.PackedLookAngles look_q = 7;
 }
 
 // 服务端下发的移动增量结果。
@@ -26,17 +22,13 @@ message S2C_MoveDelta {
   // 实体 ID。
   uint64 entity_id = 1;
   // 服务端权威位置。
-  mmo.common.Vector3 pos = 2;
+  mmo.common.QuantizedVector3 pos = 2;
   // 服务端权威朝向。
-  float yaw = 3;
+  mmo.common.PackedLookAngles rotation = 3;
   // 对应的移动序列号。
   uint32 move_seq = 4;
   // 服务端时间戳（毫秒）。
   uint32 timestamp_ms = 5;
-  // 量化位置（高频链路推荐）。
-  mmo.common.QuantizedVector3 pos_q = 6;
-  // 打包朝向（高频链路推荐）。
-  mmo.common.PackedLookAngles look_q = 7;
 }
 
 // 客户端停止移动请求。
@@ -44,11 +36,9 @@ message C2S_StopMove {
   // 实体 ID。
   uint64 entity_id = 1;
   // 停止时客户端位置。
-  mmo.common.Vector3 pos = 2;
+  mmo.common.QuantizedVector3 pos = 2;
   // 停止对应的移动序列号。
   uint32 move_seq = 3;
-  // 停止时量化位置（高频链路推荐）。
-  mmo.common.QuantizedVector3 pos_q = 4;
 }
 
 // 服务端强制传送通知。
@@ -56,11 +46,7 @@ message S2C_Teleport {
   // 实体 ID。
   uint64 entity_id = 1;
   // 传送后的目标位置。
-  mmo.common.Vector3 pos = 2;
+  mmo.common.QuantizedVector3 pos = 2;
   // 传送后的朝向。
-  float yaw = 3;
-  // 传送后的量化位置。
-  mmo.common.QuantizedVector3 pos_q = 4;
-  // 传送后的打包朝向。
-  mmo.common.PackedLookAngles look_q = 5;
+  mmo.common.PackedLookAngles rotation = 3;
 }

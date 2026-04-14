@@ -6,7 +6,7 @@
 #include <etcd.hh>
 #include <concurrent_map.hh>
 // gateway
-#include <service/gateway_service.hh>
+#include <listen/gateway_listen.hh>
 #include <authentication/authentication.hh>
 #include <thread_local_store/thread_local_store.hh>
 #include <route/route.hh>
@@ -48,8 +48,8 @@ private:
     std::shared_ptr<common::Register> register_;
     std::shared_ptr<RouteCenter> route_;
     std::shared_ptr<Authentication> authentication_;
-    ConcurrentMap<uint64_t, kcp::channel_view> player_channels_;
-    ConcurrentMap<uint64_t, kcp::channel_view> authenticating_;
+    common::ConcurrentMap<uint64_t, kcp::channel_view> player_channels_;
+    common::ConcurrentMap<uint64_t, kcp::channel_view> authenticating_;
     ThreadLocalStore<uint64_t, std::shared_ptr<mmo::transport::Envelope>> packages_thread_local_;
 };
 

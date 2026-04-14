@@ -4,6 +4,7 @@
 #include "ids.pb.h"
 #include "authenticate.hh"
 #include "memory_reuse.hh"
+#include <cmath>
 #include <cstdint>
 
 namespace common{
@@ -41,12 +42,35 @@ struct util{
         message_id &= ~(0xff);
         message_id |= (action << 00);
     }
+    
+    static inline float unpack_yaw_to_radians(uint32_t packed) {
+        uint16_t yaw16 = static_cast<uint16_t>(packed >> 16);
+        return static_cast<float>(yaw16) * (2.0f * static_cast<float>(M_PI) / 65536.0f);
+    }
+    static inline float unpack_pitch_to_radians(uint32_t packed) {
+        uint16_t pitch16 = static_cast<uint16_t>(packed);
+        return static_cast<float>(pitch16) * (2.0f * static_cast<float>(M_PI) / 65536.0f);
+    }
+    static inline uint32_t pack_yaw_pitch(float yaw, float pitch){
+        uint16_t yaw16 = static_cast<uint16_t>(yaw / (2.0f * static_cast<float>(M_PI) * 65536.0f));
+        uint16_t pitch16 = static_cast<uint16_t>(pitch / (2.0f * static_cast<float>(M_PI) * 65536.0f));
+        return (yaw16 << 16) | pitch16;
+    }
+
+    #define DEFAULT_SCALE 100
+    static inline float itos(uint32_t value, float scale){
+        return value / 1.0 * scale;
+    }
+    static inline uint32_t oito(float value, float scale){
+        return static_cast<uint32_t>(value * scale);
+    }
+
 
     // send to internal server
     static inline std::shared_ptr<mmo::transport::GatewayToServer> make_gateway_to_server(const std::shared_ptr<mmo::transport::Envelope>& envelope, const std::shared_ptr<common::PlayerInfo>& player_info){
         auto gateway_to_server = memory_reuse::get_object<mmo::transport::GatewayToServer>();
         auto header = gateway_to_server->mutable_header();
-        header->set_gateway_id(envelope->header().player_id());
+        header->set_player_id(envelope->header().player_id());
         header->set_session_id(player_info->session_id);
         header->set_gateway_id(player_info->gateway_id);
         header->set_zone_id(player_info->zone_id);

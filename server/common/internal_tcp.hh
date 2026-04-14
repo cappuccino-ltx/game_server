@@ -28,6 +28,8 @@ using btcp = asio::ip::tcp;
 using  std::placeholders::_1;
 using  std::placeholders::_2;
 using  std::placeholders::_3;
+using  std::placeholders::_4;
+
 #define DEFAULT_CHANNEL_BUFFER_SIZE (1024 * 64) // 64kb
 #define DEFAULT_SOCKET_BUFFER_SIZE (1024 * 256) // 256kb
 #define DEFAULT_WRITE_TIMER_INTERVAL (100) // 100us
@@ -76,6 +78,9 @@ public:
     
     btcp::endpoint endpoint(){
         return socket_.remote_endpoint();
+    }
+    uint16_t& id(){
+        return id_;
     }
 private:
     void do_close(){
@@ -219,12 +224,13 @@ private:
     std::atomic_uint32_t write_queue_data_size_ { 0 };
     bool write_timer_registered_{false};
     bool write_registered_{false};
+    uint16_t id_ = -1;
 }; // class _channel
 using Channel = std::shared_ptr<_channel>;
 
 class InternalTcp{
 public:
-    InternalTcp(int port, int producer_n)
+    InternalTcp(int port, int producer_n = 1)
     :io_context_(),
     work_(asio::make_work_guard(io_context_)),
     producer_n_(producer_n)

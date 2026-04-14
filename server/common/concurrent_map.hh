@@ -6,7 +6,7 @@
 #include <thread>
 #include <vector>
 
-namespace gateway{
+namespace common{
 
 #define CONCURRENT_MAP_BUCKET_SIZE (std::thread::hardware_concurrency() > 8 ? std::thread::hardware_concurrency() : 8)
 
