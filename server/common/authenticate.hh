@@ -12,7 +12,7 @@ struct PlayerInfo{
     uint32_t battle_id;     // 战斗服ID
 };
 
-#define REDIS_STORE_NAME_SESSION_TOKEN "demo:session:token:"
+#define REDIS_STORE_NAME_SESSION_TOKEN "demo:session:token:" // player_id
 #define PLAYER_INFO_VERSION "version"
 #define PLAYER_INFO_SESSION_ID "session_id"
 #define PLAYER_INFO_GATEWAY_ID "gateway_id"
