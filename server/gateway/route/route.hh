@@ -41,7 +41,7 @@ private:
 private:
 
     common::tcp::InternalTcp tcp_;
-    ConcurrentMap<std::string, common::tcp::Channel> route_targets_;
+    common::ConcurrentMap<std::string, common::tcp::Channel> route_targets_;
     std::function<void(uint64_t, std::shared_ptr<std::vector<uint8_t>>)> callback_;
     std::function<void(uint64_t, uint32_t)> internal_callback_;
 };

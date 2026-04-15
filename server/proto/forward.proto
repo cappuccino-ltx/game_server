@@ -9,10 +9,10 @@ message RouteHeader {
   uint64 session_id = 2;
   // 网关实例 ID。
   uint32 gateway_id = 3;
-  // 玩家当前所属 Zone。
-  uint32 zone_id = 4;
   // 玩家当前所属 Battle 实例 ID。
-  uint32 battle_id = 5;
+  uint32 battle_id = 4;
+  // 玩家当前所属 Zone。
+  uint32 zone_id = 5;
   // 业务命令字。
   uint32 cmd = 6;
   // 链路追踪 ID，便于日志关联。

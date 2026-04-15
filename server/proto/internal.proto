@@ -1,0 +1,13 @@
+
+
+syntax = "proto3";
+package mmo.internal;
+
+message PreloadEntityInfo {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+    float yaw = 4;
+    float pitch = 5;
+    float roll = 6;
+}

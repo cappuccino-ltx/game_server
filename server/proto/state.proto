@@ -15,6 +15,21 @@ enum EntityType {
   MONSTER = 3;
 }
 
+enum EntityState {
+  // 未指定状态。
+  ES_UNSPECIFIED = 0;
+  // 进入视野
+  ES_IN_VIEW = 1;
+  // 离开视野。
+  ES_OUT_OF_VIEW = 2;
+  // 更新状态。
+  ES_UPDATE = 3;
+  // 死亡状态。
+  ES_DEAD = 4;
+  // 存活状态。
+  ES_ALIVE = 5;
+}
+
 // 通用属性键值对。
 message Attribute {
   // 属性名。
@@ -29,16 +44,14 @@ message EntitySnapshot {
   uint64 entity_id = 1;
   // 实体类型。
   EntityType type = 2;
+  // 实体状态。
+  EntityState state = 3;
   // 当前位置。
-  mmo.common.Vector3 pos = 3;
+  mmo.common.QuantizedVector3 pos = 4;
   // 当前朝向。
-  float yaw = 4;
+  mmo.common.PackedLookAngles look = 5;
   // 属性快照列表。
-  repeated Attribute attrs = 5;
-  // 量化位置（高频链路推荐）。
-  mmo.common.QuantizedVector3 pos_q = 6;
-  // 打包朝向（高频链路推荐）。
-  mmo.common.PackedLookAngles look_q = 7;
+  repeated Attribute attrs = 6;
 }
 
 // 帧同步中的实体增量。
@@ -48,35 +61,20 @@ message EntityDelta {
   // 位置是否变化。
   bool pos_changed = 2;
   // 新位置（当位置变化时有效）。
-  mmo.common.Vector3 pos = 3;
+  mmo.common.QuantizedVector3 pos = 3;
   // 朝向是否变化。
-  bool yaw_changed = 4;
+  bool look_changed = 4;
   // 新朝向（当朝向变化时有效）。
-  float yaw = 5;
+  mmo.common.PackedLookAngles look = 5;
   // 变化的属性列表。
   repeated Attribute attrs = 6;
-  // 新量化位置（当位置变化时有效）。
-  mmo.common.QuantizedVector3 pos_q = 7;
-  // 新打包朝向（当朝向变化时有效）。
-  mmo.common.PackedLookAngles look_q = 8;
 }
 
-// AOI 进入通知。
-message S2C_AOIEnter {
-  // 新进入 AOI 的实体快照。
-  repeated EntitySnapshot entities = 1;
-}
-
-// AOI 离开通知。
-message S2C_AOILeave {
-  // 离开 AOI 的实体 ID 列表。
-  repeated uint64 entity_ids = 1;
-}
 
 // 状态帧下发消息。
 message S2C_StateFrame {
-  // 当前帧的实体增量列表。
-  repeated EntityDelta deltas = 1;
+  // 当前帧的实体快照列表。
+  repeated EntitySnapshot entities = 1;
   // 服务器帧号。
   uint32 frame = 2;
 }

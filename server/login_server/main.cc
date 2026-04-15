@@ -1,12 +1,12 @@
 
 
-#include "login.hh"
+#include "service/login.hh"
 #include <router_id.hh>
 
 
 int main() {
-    HttpServer server;
-    server.init_http("0.0.0.0", 8080)
+    login::HttpServer server;
+    server.init_http("0.0.0.0", 8080, 4)
         .init_redis({
             .host = "127.0.0.1", // redis ip
             .port = 6379, // redis port
@@ -21,7 +21,7 @@ int main() {
             .charset = "utf8",
             .port = 3306,
             .conn_pool_size = 5
-        }).init_login_service("127.0.0.1:2379", ROUTER_ID_GATEWAY)
+        }).init_login_service("127.0.0.1:2379", ROUTER_ID_BASE, 4)
         .start();
     return 0;
 }
