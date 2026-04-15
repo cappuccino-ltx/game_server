@@ -29,17 +29,17 @@ public:
 #pragma db not_null
     uint64_t player_id;
 #pragma db not_null
-    float x;
+    float x; // -5000 ~ 5000
 #pragma db not_null
-    float y;
+    float y; // -5000 ~ 5000
 #pragma db not_null
-    float z;
+    float z; // 0
 #pragma db not_null
-    float yaw;
+    float yaw;  // 0 ~ 360
 #pragma db not_null
-    float pitch;
+    float pitch; // -90 ~ 90
 #pragma db not_null
-    float roll;
+    float roll; // 0
 };
 
 #pragma db view object(User)

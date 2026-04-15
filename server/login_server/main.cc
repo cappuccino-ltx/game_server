@@ -6,7 +6,7 @@
 
 int main() {
     login::HttpServer server;
-    server.init_http("0.0.0.0", 8080, 4)
+    server.init_http("0.0.0.0", 10000, 4)
         .init_redis({
             .host = "127.0.0.1", // redis ip
             .port = 6379, // redis port

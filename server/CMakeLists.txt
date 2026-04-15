@@ -15,4 +15,4 @@ add_subdirectory(gateway)
 add_subdirectory(battle)
 add_subdirectory(login_server)
 
-# add_subdirectory(test)
+add_subdirectory(test)
