@@ -23,6 +23,6 @@ int main() {
         .host = "127.0.0.1:2379",
         .base_dir = ROUTER_ID_GATEWAY"/" + std::to_string(1), //
         .register_value = "127.0.0.1:10001" // internal tcp host
-    }).start(8080); // foreign udp port
+    }).start(10001); // foreign udp port
     return 0;
 }

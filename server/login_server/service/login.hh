@@ -1,9 +1,7 @@
 #pragma once
 
-#include <atomic>
+
 #include <cstdint>
-// #include <etcd/Client.hpp>
-// #include <etcd/SyncClient.hpp>
 #include <functional>
 #include <memory>
 #include <odb/mysql/database.hxx>
@@ -11,17 +9,14 @@
 #include <unordered_map>
 #include <vector>
 #include "redis.hh"
-#include "authenticate.hh"
-#include "mysql.hh"
 #include "login.pb.h"
-#include "internal.pb.h"
 #include "user/user_operator.hh"
-#include "util.hh"
 #include "etcd.hh"
 #include "http/http.hh"
-#include "router_id.hh"
 #include "internal_tcp.hh"
 #include <memory_reuse.hh>
+
+
 
 namespace login{
 

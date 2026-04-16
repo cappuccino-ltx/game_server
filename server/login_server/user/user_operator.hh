@@ -45,8 +45,9 @@ public:
         try{
             typedef odb::query<UserPositionView> Query;
             typedef odb::result<UserPositionView> Result;
-
-            Result r(db_->query<UserPositionView>());
+            odb::transaction t(db_->begin());
+            Result r(db_->query<UserPositionView>(
+                Query::account == account));
             if (!r.empty()) {
                 return *r.begin();
             }

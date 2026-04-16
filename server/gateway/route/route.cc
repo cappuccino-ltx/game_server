@@ -3,6 +3,7 @@
 #include "route.hh"
 #include "forward.pb.h"
 #include "ids.pb.h"
+#include "log.hh"
 #include "memory_reuse.hh"
 
 namespace gateway{
@@ -18,7 +19,7 @@ void RouteCenter::async_start(){
 }
 
 void RouteCenter::add_route_target(const std::string& target_id, const std::string& ip, int port){
-    tcp_.connect(ip, port,target_id);
+    tcp_.connect(ip, port, target_id);
 }
 void RouteCenter::set_send_to_client_callback(const std::function<void(uint64_t, std::shared_ptr<std::vector<uint8_t>>)>& callback){
     callback_ = callback;
@@ -41,9 +42,9 @@ void RouteCenter::client_to_route(std::shared_ptr<mmo::transport::Envelope> enve
         case mmo::ids::Module::LOGIC:
         // route to logic server
         {
-            auto channel = route_targets_.get(ROUTER_ID_LOGIC);
+            auto channel = route_targets_.get(ROUTER_ID_LOGIC"/" + std::to_string(get_logic_id(envelope->header().player_id())));
             if (!channel) {
-                errorlog("logic server not connected");
+                // errorlog("logic server not connected");
             }else {
                 uint32_t cmd = envelope->header().cmd();
                 common::protocol::util::set_direction(cmd, mmo::ids::Direction::GW2LOGIC);
@@ -63,7 +64,7 @@ void RouteCenter::client_to_route(std::shared_ptr<mmo::transport::Envelope> enve
         case mmo::ids::Module::SKILL:
         // route to battle server
         {
-            auto channel = route_targets_.get(ROUTER_ID_BATTLE);
+            auto channel = route_targets_.get(ROUTER_ID_BATTLE"/" + std::to_string(get_battle_id(envelope->header().player_id())));
             if (!channel) {
                 errorlog("battle server not connected");
                 return;

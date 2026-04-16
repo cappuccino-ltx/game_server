@@ -11,9 +11,9 @@ GatewayService::GatewayService(gateway_service_config config){
     server.set_connect_callback(std::bind(&GatewayService::on_connect,this,kcp::_1,kcp::_2));
     server.set_message_callback(std::bind(&GatewayService::on_message,this,kcp::_1,kcp::_2));
     server.set_connection_timeout(config.timeout);
-    server.set_buffer_pool([](size_t size){
-        return memory_reuse::get_buffer<uint8_t>(size);
-    });
+    // server.set_buffer_pool([](size_t size){
+    //     return memory_reuse::get_buffer<uint8_t>(size);
+    // });
 }
 
 void GatewayService::set_message_callback(const std::function<void(kcp::channel_view, kcp::packet)>& callback){

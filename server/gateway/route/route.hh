@@ -37,6 +37,12 @@ public:
 private:
     void on_connection(common::tcp::Channel channel, bool connected, const std::string& target_id);
     void on_message(common::tcp::Channel channel, void* data,size_t size, const std::string& target_id);
+    inline int get_battle_id(uint64_t player_id) {
+        return 1;
+    }
+    inline int get_logic_id(uint64_t player_id) {
+        return 1;
+    }
 
 private:
 

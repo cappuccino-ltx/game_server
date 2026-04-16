@@ -21,7 +21,7 @@ int main() {
             .charset = "utf8",
             .port = 3306,
             .conn_pool_size = 5
-        }).init_login_service("127.0.0.1:2379", ROUTER_ID_BASE, 4)
+        }).init_login_service("127.0.0.1:2379", ROUTER_ID_BASE, 4 + 1) // 加上主线程
         .start();
     return 0;
 }

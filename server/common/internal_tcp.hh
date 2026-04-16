@@ -46,6 +46,7 @@ public:
         ,write_timer_(io_context_)
         ,read_buffer_(DEFAULT_CHANNEL_BUFFER_SIZE)
         ,write_buffer_(DEFAULT_CHANNEL_BUFFER_SIZE)
+        ,send_buffer_(DEFAULT_CHANNEL_BUFFER_SIZE)
         ,write_queue_(producer_n,lockfree::queue_size::K2) // 可以根据实际情况调整
     {
         // 修改socket缓冲区大小为256kb
@@ -134,24 +135,29 @@ private:
     }
 
     // thread not safe
-    void do_write(){
-        if(write_size_ == 0){
-            return;
-        }
+    void do_write(bool swap = true){
         write_registered_ = true;
+        if (swap) {
+            send_buffer_.swap(write_buffer_);
+            send_size_ = write_size_;
+            write_size_ = 0;
+        }
         asio::async_write(
             socket_, 
-            asio::buffer(write_buffer_.data(), write_size_), 
+            asio::buffer(send_buffer_.data(), send_size_), 
             [self = shared_from_this()](boost::system::error_code ec, std::size_t bytes_transferred)
         {
             if(!ec){    
                 // 处理写入完成
-                std::copy(self->write_buffer_.data() + bytes_transferred,self->write_buffer_.data() + self->write_size_,self->write_buffer_.data());
-                self->write_size_ -= bytes_transferred;
-                if (self->write_size_ > 0){
-                    self->do_write();
+                self->send_size_ -= bytes_transferred;
+                if (self->send_size_ != 0){
+                    std::memmove(self->send_buffer_.data(),self->send_buffer_.data() + bytes_transferred,self->send_size_);
+                    self->do_write(false);
                 }else {
                     self->write_registered_ = false;
+                    if(self->write_size_ != 0){
+                        self->do_write();
+                    }
                 }
             }else {
                 // 处理写入失败
@@ -192,9 +198,19 @@ private:
                 self->read_size_ += bytes_transferred;
                 if (self->read_callback_) {
                     uint32_t handler_size = self->on_message(self->read_buffer_.data(),self->read_size_);
-                    if(handler_size > 0 && self->read_size_ - handler_size > 0){
-                        std::copy(self->read_buffer_.data() + handler_size,self->read_buffer_.data() + self->read_size_,self->read_buffer_.data());
-                        self->read_size_ -= handler_size;
+                    // if(handler_size > 0 && self->read_size_ - handler_size > 0){
+                    //     std::copy(self->read_buffer_.data() + handler_size,self->read_buffer_.data() + self->read_size_,self->read_buffer_.data());
+                    //     self->read_size_ -= handler_size;
+                    // }
+                    if (handler_size > 0) {
+                        uint32_t remain = self->read_size_ - handler_size;
+                        if (remain > 0) {
+                            std::memmove(
+                                self->read_buffer_.data(),
+                                self->read_buffer_.data() + handler_size,
+                                remain);
+                        }
+                        self->read_size_ = remain;
                     }
                 }else {
                     // read_buffer_.clear();
@@ -214,8 +230,10 @@ private:
     btcp::socket socket_;
     std::vector<uint8_t> read_buffer_;
     std::vector<uint8_t> write_buffer_;
+    std::vector<uint8_t> send_buffer_;
     uint32_t read_size_{0};
     uint32_t write_size_{0};
+    uint32_t send_size_{0};
     std::function<void(std::shared_ptr<_channel>,void*,uint32_t)> read_callback_;
     std::function<void(std::shared_ptr<_channel>,bool)> connection_callback_;
     std::function<void(std::shared_ptr<_channel>)> remove_callback_;

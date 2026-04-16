@@ -58,11 +58,11 @@ struct util{
     }
 
     #define DEFAULT_SCALE 100
-    static inline float itos(uint32_t value, float scale){
-        return value / 1.0 * scale;
+    static inline float itof(int32_t value, uint32_t scale){
+        return value / (1.0f * scale);
     }
-    static inline uint32_t oito(float value, float scale){
-        return static_cast<uint32_t>(value * scale);
+    static inline int32_t ftoi(float value, uint32_t scale){
+        return static_cast<int32_t>(value * scale);
     }
 
 

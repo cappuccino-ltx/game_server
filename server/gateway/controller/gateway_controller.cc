@@ -48,25 +48,31 @@ namespace gateway{
     void Controller::udp_service_message(kcp::channel_view channel, std::shared_ptr<std::vector<uint8_t>> message){
         std::shared_ptr<mmo::transport::Envelope> envelope = memory_reuse::get_object<mmo::transport::Envelope>();
         envelope->ParseFromArray(message->data(), message->size());
+        if (authenticating_.find(envelope->header().player_id())){
+            // 已经在交付了, 直接存储到缓存中
+            packages_thread_local_.put(envelope->header().player_id(), envelope);
+            return;
+        }
         auto info = authentication_->authenticate(envelope->header().player_id());
         if(info){
             if (envelope->header().token() != std::to_string(info->session_id)){
+                debuglog("token {} != {}", envelope->header().token(), info->session_id);
                 return;
             }
             // 认证成功, 向上交付 todo...
-            player_channels_[envelope->header().player_id()] = channel;
+            player_channels_.insert(envelope->header().player_id(), channel);
             route_->client_to_route(envelope, info);
         }else {
             // 认证失败, 存储到本地, 等待异步认证成功或者失败, 再交付
             packages_thread_local_.put(envelope->header().player_id(), envelope);
-            authenticating_[envelope->header().player_id()] = channel;
+            authenticating_.insert(envelope->header().player_id(), channel);
         }
     }
     // authentication callback 
     void Controller::on_player_authenticated(uint64_t player_id, std::shared_ptr<common::PlayerInfo> info){
         if(info){
             // add player id to local store
-            player_channels_[player_id] = authenticating_[player_id];
+            player_channels_.insert(player_id, authenticating_[player_id]);
             authenticating_.remove(player_id);
             // notify channel
             player_channels_[player_id]->timer_task([this,player_id,info](){
@@ -90,11 +96,13 @@ namespace gateway{
         kcp::channel_view channel = player_channels_[player_id];
         if (channel){
             channel->send(message);
+        }else {
+            // player not found
+            debuglog("player id {} not found", player_id);
         }
     }
     // internal callback
     void Controller::on_internal_message(uint64_t player_id, uint32_t action){
-        infolog("internal message: {} {}" ,player_id, action);
         if (action == mmo::ids::InternalAction::IA_DELETE_CACHE_REQ){
             // delete cache
             authentication_->delete_cache(player_id);

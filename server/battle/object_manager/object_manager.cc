@@ -27,7 +27,7 @@ ObjectManager::ObjectManager(int tick, const std::shared_ptr<sw::redis::Redis>& 
     , redis_opt_(redis)
     , obj_thread_(std::bind(&ObjectManager::thread_handle, this))
 {
-    do_timer();
+    
 }
 ObjectManager::~ObjectManager()
 {
@@ -84,6 +84,7 @@ void ObjectManager::do_timer(){
 }
 
 void ObjectManager::thread_handle(){
+    do_timer();
     io_context_.run();
 }
 void ObjectManager::handle_event(){
@@ -139,11 +140,14 @@ void ObjectManager::handle_msg(){
 void ObjectManager::handle_update(){
     std::vector<Entity*> moved_players;
     moved_players.reserve(entities_.size());
+    // infolog << "handle_update, move_inputs size: " << move_inputs_.size();
     for (auto& [player_id, move_inputs] : move_inputs_) {
         if (move_inputs.empty()) {
+            // infolog << "player_id: " << player_id << ", move_inputs is empty";
             continue;
         }
         if (!entities_.count(player_id)) {
+            // infolog << "player_id: " << player_id << ", entity not found";
             move_inputs.clear();
             continue;
         }
@@ -151,6 +155,7 @@ void ObjectManager::handle_update(){
         // handle move input
         bool move = apply_latest_move_input(entity, move_inputs, 1.0f / tick_, MOVE_SPEED);
         if (move) {
+            // infolog << "player_id: " << player_id << ", move";
             moved_players.push_back(&entity);
         }
         move_inputs.clear();
@@ -163,6 +168,8 @@ void ObjectManager::aoi_update(const std::vector<Entity*>& moved_players){
     // node interface call
     std::unordered_map<uint64_t, AoiResult> result;
     node_->aoi_update(moved_players, result);
+    // infolog << "aoi_update, moved_players size: " << moved_players.size()
+    // << ", result size: " << result.size();
     // handle result
     for (auto& [player_id, aoi_result] : result) {
         // handle enter entities
@@ -218,9 +225,9 @@ void ObjectManager::set_entity_fields(mmo::state::EntitySnapshot* entity, const 
     entity->set_type(type);
     entity->set_state(state);
     auto pos = entity->mutable_pos();
-    pos->set_x(common::protocol::util::itos(entity_info.position.x, DEFAULT_SCALE));
-    pos->set_y(common::protocol::util::itos(entity_info.position.y, DEFAULT_SCALE));
-    pos->set_z(common::protocol::util::itos(entity_info.position.z, DEFAULT_SCALE));
+    pos->set_x(common::protocol::util::ftoi(entity_info.position.x, DEFAULT_SCALE));
+    pos->set_y(common::protocol::util::ftoi(entity_info.position.y, DEFAULT_SCALE));
+    pos->set_z(common::protocol::util::ftoi(entity_info.position.z, DEFAULT_SCALE));
     pos->set_scale(DEFAULT_SCALE);
     auto look = entity->mutable_look();
     look->set_packed(common::protocol::util::pack_yaw_pitch(entity_info.rotation.yaw, entity_info.rotation.pitch));
@@ -229,6 +236,7 @@ void ObjectManager::set_entity_fields(mmo::state::EntitySnapshot* entity, const 
 
 
 void ObjectManager::handle_perload_entity(uint64_t player_id, const std::string& body){
+    debuglog("handle_perload_entity, player_id: {}", player_id);
     auto info = memory_reuse::get_object<mmo::internal::PreloadEntityInfo>();
     info->Clear();
     if (!info->ParseFromString(body)){
@@ -249,6 +257,7 @@ void ObjectManager::handle_perload_entity(uint64_t player_id, const std::string&
 void ObjectManager::handle_login(uint64_t player_id){
     if (entities_.count(player_id)) {
         // 已经登录过了, 或者是短线重连
+        debuglog("handle_login entities_.count(player_id) == true, player_id: {}", player_id);
         return;
     }
     if (!wait_bind_entities_.count(player_id)) {
@@ -266,6 +275,7 @@ void ObjectManager::handle_login(uint64_t player_id){
     wait_bind_entities_.erase(player_id);
     // add entity to node
     node_->add_entity(&entities_[player_id]);
+    debuglog("handle_login, player_id: {}", player_id);
 }
 
 void ObjectManager::handle_move(uint64_t player_id, const std::string& body){
@@ -277,6 +287,7 @@ void ObjectManager::handle_move(uint64_t player_id, const std::string& body){
     }
     // handle move input
     if (!entities_.count(player_id)) {
+        // 未登录
         return;
     }
     move_inputs_[player_id].push_back(input);

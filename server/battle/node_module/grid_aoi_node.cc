@@ -110,7 +110,7 @@ void GridAoiNode::aoi_update(const std::vector<Entity*>& moved_players, std::uno
         // 先从九宫格中找到所有候选的玩家
         PlayerSet candidates;
         collect_candidates(player_it->second.cell, candidates);
-        candidates.erase(player_id);
+        // candidates.erase(player_id);
 
         PlayerSet new_visible;
         for (uint64_t candidate_id : candidates) {

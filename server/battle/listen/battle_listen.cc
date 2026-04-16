@@ -54,13 +54,14 @@ namespace battle {
         if (channel->id() == (uint16_t)-1){
             // init channel
             channel->id() = msg->header().battle_id();
-            _channels[channel->id()] = channel;
+            _channels.insert( channel->id(), channel);
         }
         auto cmd = msg->header().cmd();
         auto direction = common::protocol::util::get_direction(cmd);
         auto module = common::protocol::util::get_module(cmd);
         auto action = common::protocol::util::get_action(cmd);
         if (direction != mmo::ids::GW2BATTLE){
+            warninglog("direction not GW2BATTLE {} : {}, {}, {}",channel->endpoint().port(), direction, module, action);
             return ;
         }
         if (module == mmo::ids::AUTH){
@@ -69,7 +70,8 @@ namespace battle {
                 // auth bind req
                 // check auth channel
                 auto exist = _auth_channels.find(msg->header().player_id());
-                if (exist){
+                auto channel_old = _auth_channels.get(msg->header().player_id());
+                if (exist && !channel_old){
                     // 顶号请求或者断网重连
                     debuglog("auth bind req, player id {} already bind, switch to new channel", msg->header().player_id());
                     // 发送清理前一个 channel 的消息

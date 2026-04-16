@@ -1,5 +1,13 @@
 
 #include "login.hh"
+#include "forward.pb.h"
+#include "ids.pb.h"
+#include "protocol.hh"
+#include "router_id.hh"
+#include "internal.pb.h"
+#include "util.hh"
+#include "authenticate.hh"
+#include "mysql.hh"
 
 namespace login{
 
@@ -13,15 +21,17 @@ GatewaySelector::GatewaySelector(const std::string& host, const std::string& bas
             size_t pos = key.rfind("/");
             uint32_t id = std::stoi(key.substr(pos + 1));
             
-            if (key.find(ROUTER_ID_GATEWAY)){
+            if (key.find(ROUTER_ID_GATEWAY) != std::string::npos){
                 // 网关
+                infolog("host {} {} is gateway" ,key, value);
                 std::unique_lock<std::mutex> lock;
                 gateways_.push_back({id, value});
-            }else if (key.find(ROUTER_ID_BATTLE)) {
+            }else if (key.find(ROUTER_ID_BATTLE) != std::string::npos) {
                 // battle 
                 {
+                    infolog("host {} {} is battle" ,key, value);
                     std::unique_lock<std::mutex> lock;
-                    gateways_.push_back({id, value});
+                    battles_.insert({id, value});
                 }
                 if (battle_online_notify) {
                     battle_online_notify(id, value);
@@ -32,7 +42,7 @@ GatewaySelector::GatewaySelector(const std::string& host, const std::string& bas
             size_t pos = key.rfind("/");
             uint32_t id = std::stoi(key.substr(pos + 1));
             std::unique_lock<std::mutex> lock;
-            if (key.find(ROUTER_ID_GATEWAY)){
+            if (key.find(ROUTER_ID_GATEWAY) != std::string::npos){
                 // 网关
                 std::unique_lock<std::mutex> lock;
                 for(auto it = gateways_.begin(); it != gateways_.end(); ++it){
@@ -41,7 +51,7 @@ GatewaySelector::GatewaySelector(const std::string& host, const std::string& bas
                         return;
                     }
                 }
-            }else if (key.find(ROUTER_ID_BATTLE)) {
+            }else if (key.find(ROUTER_ID_BATTLE) != std::string::npos) {
                 // battle 
                 std::unique_lock<std::mutex> lock;
                 battles_.erase(id);
@@ -82,6 +92,7 @@ LoginService::LoginService(
     internal_tcp_(-1,http_thread_num)
 {
     internal_tcp_.set_connection_callback(std::bind(&LoginService::on_connect, this, common::tcp::_1, common::tcp::_2,common::tcp::_3));
+    internal_tcp_.async_start();
 }
 // 登录逻辑
 void LoginService::login(std::shared_ptr<mmo::login::C2L_LoginReq> req, std::shared_ptr<mmo::login::L2C_LoginRsp> rsp){
@@ -93,6 +104,7 @@ void LoginService::login(std::shared_ptr<mmo::login::C2L_LoginReq> req, std::sha
     // 从数据库中校验账号密码
     std::string reason;
     if (!CheckAccount(req->account(), req->password(),reason)) {
+        debuglog << "登录失败 : " << reason << " :" << req->account();
         return handler(false,reason);
     }
     // 查询玩家信息
@@ -111,11 +123,12 @@ void LoginService::login(std::shared_ptr<mmo::login::C2L_LoginReq> req, std::sha
     std::unordered_map<std::string, std::string> fields;
     fields["version"] = "1";
     fields["session_id"] = std::to_string(session_id);
-    fields["gateway_id"] = gateway_id;
+    fields["gateway_id"] = std::to_string(gateway_id);
     fields["zone_id"] = "1";
     fields["battle_id"] = std::to_string(battle_id);
     // 写入 网关验证用的 token 信息
     redis_.hsetall(key, fields);
+    debuglog("login success, player_id: {}, session_id: {}", player_id, session_id);
 
     // 设置返回登录结果
     rsp->set_ok(true);
@@ -132,16 +145,33 @@ void LoginService::login(std::shared_ptr<mmo::login::C2L_LoginReq> req, std::sha
     notify_info->set_yaw(info.yaw);
     notify_info->set_pitch(info.pitch);
     notify_info->set_roll(info.roll);
-    size_t size = notify_info->ByteSizeLong();
+
+    auto notify = memory_reuse::get_object<mmo::transport::GatewayToServer>();
+    notify->Clear();
+    auto head = notify->mutable_header();
+    head->set_player_id(player_id);
+    head->set_zone_id(1);
+    head->set_battle_id(battle_id);
+    head->set_gateway_id(gateway_id);
+    uint32_t cmd = 0;
+    common::protocol::util::set_direction(cmd, mmo::ids::GW2BATTLE); //GW2BATTLE
+    common::protocol::util::set_module(cmd, mmo::ids::INTERNAL);
+    common::protocol::util::set_action(cmd, mmo::ids::IA_PRELOAD_ENTITY_REQ);
+    head->set_cmd(cmd);
+    notify_info->SerializeToString(notify->mutable_body());
+
+    size_t size = notify->ByteSizeLong();
     auto buffer = memory_reuse::get_buffer<uint8_t>(size);
     buffer->resize(size);
-    notify_info->SerializeToArray(buffer->data(), buffer->size());
+    notify->SerializeToArray(buffer->data(), buffer->size());
     auto channel = get_battle_server(battle_id);
     if(channel){
         channel->write(buffer);
         return ;
     }
     rsp->set_ok(false);
+    rsp->set_reason("未找到战斗服");
+    debuglog << "未找到战斗服 " << battle_id;
 }
 // token生成
 std::string LoginService::generate_token(){
@@ -166,9 +196,11 @@ void LoginService::battle_online(uint32_t id, const std::string& host){
     std::string ip = host.substr(0,pos);
     int port = std::stoi(host.substr(pos + 1));
     internal_tcp_.connect(ip, port, std::to_string(id));
+    infolog("connect {}, {}", id, host);
 }
 void LoginService::on_connect(common::tcp::Channel channel,bool linked,const std::string& flag){
     uint32_t id = std::stoi(flag);
+    infolog("connected {}", flag);
     if (linked) {
         std::unique_lock<std::mutex> lock(mtx);
         battle_servers_.insert({id, channel});
@@ -233,7 +265,7 @@ void HttpServer::login(std::shared_ptr<web::Request> req,
         std::shared_ptr<web::Response> rsp, 
         std::shared_ptr<web::HttpSession> session)
 {
-    auto& body = rsp->body();
+    auto& body = req->body();
     auto req_pro = memory_reuse::get_object<mmo::login::C2L_LoginReq>();
     auto rsp_pro = memory_reuse::get_object<mmo::login::L2C_LoginRsp>();
     req_pro->Clear();
@@ -248,8 +280,10 @@ void HttpServer::login(std::shared_ptr<web::Request> req,
     login_->login(req_pro, rsp_pro);
     // 序列化
     size_t size = rsp_pro->ByteSizeLong();
-    rsp->body().resize(size);
-    rsp_pro->SerializeToArray(rsp->body().data(), rsp->body().size());
+    std::string data;
+    rsp_pro->SerializeToString(&data);
+    rsp->body() = data;
+    // rsp_pro->SerializeToArray(rsp->body().data(), rsp->body().size());
     // 手动触发send
     session->send(rsp);
 }
